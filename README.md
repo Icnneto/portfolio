@@ -16,4 +16,4 @@ npm run dev
 
 ## Inspiration
 
-- **Design and Architecture:** Inspired by the excellent work of [Cheggin](https://github.com/Cheggin)
+- **Design and Architecture:** Inspired by the excellent work of [Reagan Hsu](https://github.com/Cheggin)

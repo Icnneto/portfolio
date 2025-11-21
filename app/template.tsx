@@ -5,7 +5,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
     <div className="portfolio-container">
       <header className="portfolio-header">
         <h1 className="portfolio-title">Israel Nunes</h1>
-        <p className="portfolio-date">Last updated: November 13, 2025</p>
+        <p className="portfolio-date">Last updated: November 21, 2025</p>
       </header>
 
       <Navigation />

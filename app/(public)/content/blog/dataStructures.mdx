@@ -1,0 +1,100 @@
+---
+title: "Data Structures"
+date: "November 21, 2025"
+readTime: "10 min read"
+excerpt: "Understanding fundamental data structures: arrays, linked lists, stacks, trees, graphs, and hash tables"
+tags: ["data structures", "programming"]
+---
+
+Data structures in programming refer to the way data is **organized, stored, and manipulated in a computer's memory**. They are essential for efficient data storage, retrieval, and manipulation, and they provide a means to represent relationships between data elements.
+
+## Arrays
+
+**Arrays are used to store multiple values of the same type** under a single variable name, arranged in contiguous memory locations. **Each element in the array is accessed by its index**, which **represents its position** within the array.
+
+They allow for efficient storage and retrieval of data elements and are commonly used in various programming languages for a wide range of applications, such as storing lists of items, managing data sets, and representing multi-dimensional structures.
+
+### Types of Arrays
+
+1. **One-dimensional arrays** - also known as vectors or lists, are arrays with a single row or column. They are the simplest form of arrays and are often used to store a collection of values of the same data type, such as integers or characters
+
+2. **Two-dimensional arrays** - on the other hand, are arrays with two dimensions, typically represented as rows and columns. They are arranged in a grid-like structure, allowing for the storage of data in rows and columns. Two-dimensional arrays are commonly used to represent matrices, tables, or grids of values, such as a spreadsheet or a game board
+
+![One-dimensional array](/one-dimensional_array.svg)
+*One-dimensional array*
+
+![Two-dimensional array](/two-dimensional_array.svg)
+*Two-dimensional array*
+
+It is important to remember that all of the above represents only a superficial demonstration of what arrays are.
+
+If you want to complement what you've read, I suggest watching this video:
+
+[Arrays Explained - YouTube](https://www.youtube.com/embed/QJNwK2uJyGs?si=uVKf5GsiuYY9Byt1)
+
+## Linked Lists
+
+A linear data structure consisting of a **sequence of elements, called nodes, where each node contains a value and a reference (or pointer) to the next node in the sequence**.
+
+Unlike arrays, where elements are stored in contiguous memory locations, linked lists use pointers to connect nodes, allowing for dynamic memory allocation and flexible insertion and deletion operations.
+
+### Types of Linked Lists
+
+1. **Singly Linked List** - each node contains a data element and a pointer to the next node in the sequence. The last node points to NULL, indicating the end of the list
+
+2. **Doubly Linked List** - each node contains a data element, a pointer to the next node, and a pointer to the previous node. This allows for traversal in both forward and backward directions
+
+3. **Circular Linked List** - similar to a singly linked list, but the last node points back to the first node, forming a circular structure. This can be useful for certain applications, such as representing a circular buffer
+
+![Types of Linked Lists](/linked__lists.svg)
+*Types of Linked Lists (Tsuji, Yutaro. 2019)*
+
+## Stacks
+
+A Stack is a **linear data structure, which means that the data is organized in a sequence**, one after another.
+
+They are very **similar to arrays, but it is important to note that** in arrays you can remove and add values wherever you'd like, whereas in stacks **you can only remove and add values from one side, the top**.
+
+To understand that, think of it as a stack of coins, in order to get to any coin in the middle of the stack, you have to start from the top and remove coins one by one until you get to the one you want.
+
+Therefore, **this data structure operates on the Last In, First Out (LIFO) principle**.
+
+It is important to know that stacks are the building blocks of function calls and recursive functions. For further information, check this [article on Medium](https://medium.com/swlh/stack-data-structure-practical-applications-operations-e4e308008752).
+
+![Stack Data Structure](/stack__data-structure.svg)
+*Stack Data Structure*
+
+## Trees
+
+A hierarchical data structure composed of nodes, where **each node contains a value** and references (or pointers) to its child nodes.
+
+Trees are used to represent hierarchical relationships between elements, such as the hierarchical structure of file systems, organization charts, or the structure of HTML documents. They are also fundamental for implementing various data structures and algorithms, such as binary search trees and heaps.
+
+This guide doesn't aim to exhaustively delve into every detail of this complex topic. If you wish to learn more about the types of trees, read this [article on freeCodeCamp](https://www.freecodecamp.org/news/all-you-need-to-know-about-tree-data-structures-bceacb85490c/).
+
+![Trees overview](/trees__data-structure.svg)
+*Trees overview (Vijini, Mallawaarachchi. 2020)*
+
+## Graphs
+
+Graphs are a **non-linear data structure consisting of a collection of nodes (vertices) and a set of edges that connect pairs of nodes**. Each edge represents a relationship or connection between two vertices.
+
+Graphs are used to represent networks of interconnected entities, such as social networks (e.g. in Facebook, each person is represented with a vertex or node and each node is a structure and contains information like personalized name, gender, or location), computer networks, transportation networks (e.g GPS systems and Google maps use graphs to find the shortest path from one destination to another), and more.
+
+![Graphs overview](/graphs__data-structure.svg)
+*Graphs overview*
+
+There's a lot to explore when it comes to Graphs implementation and usage, if you want to further your knowledge check this [article on Medium](https://medium.com/sysco-labs/graphs-in-data-structures-and-algorithms-aaf110c2670c).
+
+## Hash Tables
+
+A Hash Table is a data structure that **allows you to store and retrieve values efficiently using a key-value pair mapping** (it can map keys to values).
+
+A hash table **works by using a hash function to transform the key (input) into an index or address in the underlying array where the corresponding value is stored** (Majeed, Ahsan. 2023).
+
+When adding a key-value pair into the hash table, the hash function is utilized to ascertain the index where the value ought to be placed. Similarly, when retrieving a value using a key, the hash function is employed once more to locate the corresponding index and retrieve the associated value.
+
+![Hash Function](/hash__data-structure.svg)
+*Hash Function (TutorialsPoint - DSA Hash Table)*
+
+As I often emphasize, this topic has way more details to explore and understand, if you wish to take a deeper dive I suggest this [tutorial](https://www.tutorialspoint.com/data_structures_algorithms/hash_data_structure.htm) or this [article on Medium](https://medium.com/@ahsan.majeed086/data-structure-and-algorithms-hash-table-1a8ef93f58a0).

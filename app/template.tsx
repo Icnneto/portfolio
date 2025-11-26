@@ -1,4 +1,5 @@
 import { Navigation } from './components/Navigation'
+import { Stats } from './components/Stats'
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -15,7 +16,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       </main>
 
       <footer className="portfolio-footer">
-        {/* Stats component will go here later */}
+        <Stats />
       </footer>
     </div>
   )

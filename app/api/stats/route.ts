@@ -1,6 +1,8 @@
 import { supabaseAdmin } from '@/app/lib/supabase';
 import { NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 // GET - Fetch views
 export async function GET() {
     const { data, error } = await supabaseAdmin

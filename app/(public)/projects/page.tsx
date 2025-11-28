@@ -13,6 +13,20 @@ export default function ProjectsPage() {
       description: "An innovative solution that translates the complexity of weather forecasts into a daily newsletter with sea condition analysis in natural language. As the creator and sole developer, I implemented an automated workflow in Python, orchestrated with LangChain, to consume data from weather APIs, process this information through an LLM to generate insights, and manage the sending of email campaigns. I was responsible for the entire project lifecycle, from system architecture and back-end/front-end development to infrastructure setup and integrations",
       tech: "Node.js, LangChain, API Integrations, Tailwind CSS, Javascript, AWS (SAM, Lambda, SQS, EventBridge)",
       link: "https://swellguide.com.br"
+    },
+    {
+      name: "User Auth",
+      award: "",
+      description: "This is a study project created to explore and implement a complete user authentication flow using Node.js, Express, Passport.js, and MongoDB on the backend, along with a simple HTML/CSS/JS frontend. The main goal is to deepen my understanding of backend concepts like routing, middleware, encryption, and session management while building a functional login system.",
+      tech: "Node.js, Express.js, Passport.js, MongoDB, Javascript",
+      link: "https://github.com/Icnneto/passportNodejs_auth"
+    },
+    {
+      name: "TypeScript CRUD REST API",
+      award: "",
+      description: "This project was created as a hands-on approach to studying the TypeScript language. It implements a CRUD REST API that allows interaction with a MongoDB database.",
+      tech: "Typescript, MongoDB",
+      link: "https://github.com/Icnneto/typescript_api_study"
     }
   ]
 

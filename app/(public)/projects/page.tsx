@@ -15,6 +15,13 @@ export default function ProjectsPage() {
       link: "https://swellguide.com.br"
     },
     {
+      name: "Icarus Solar Agent",
+      award: "",
+      description: "AI-powered chat agent that helps homeowners evaluate solar panel investments. Analyzes your roof's solar potential and calculates personalized ROI based on your location and electricity usage. Features include: real-time roof analysis via Google Solar API | personalized investment calculations (payback period, savings, CO2 offset). Based on the user informations, the agent knows which tools to call in order to present the results in natural language",
+      tech: "Next.js, Vercel AI SDK, OpenAI, Typescript, Tailwind",
+      link: "https://solar-panel-agent.vercel.app/"
+    },
+    {
       name: "User Auth",
       award: "",
       description: "This is a study project created to explore and implement a complete user authentication flow using Node.js, Express, Passport.js, and MongoDB on the backend, along with a simple HTML/CSS/JS frontend. The main goal is to deepen my understanding of backend concepts like routing, middleware, encryption, and session management while building a functional login system.",

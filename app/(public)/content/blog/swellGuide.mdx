@@ -18,7 +18,7 @@ In this section, I'll break down the system at a high level, focusing on the arc
 
 The architecture follows a serverless event-driven pattern with two Lambda functions connected by SQS:
 
-![Architecture](/SwellGuideBlog/architecture.svg)
+![Architecture](/architecture-swellguide.svg)
 
 This decoupling keeps each Lambda focused. The first handles data preparation (loading spots and conditions, enriching the payload). The second handles the entire processing pipeline: fetching weather, running AI analysis, rendering HTML, and delivering campaigns. Neither knows about the other's internals.
 

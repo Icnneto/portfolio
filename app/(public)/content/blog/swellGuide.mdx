@@ -3,7 +3,7 @@ title: "From Idea to Production: How I Built SwellGuide End-to-End"
 date: "January 14, 2026"
 readTime: "8-9 min read"
 excerpt: "From zero to 1 - how I turned an idea into real code"
-tags: ["solutions", "architecture", "programming"]
+tags: ["solutions", "architecture", "serverless", "ai", "programming"]
 ---
 
 One of the biggest challenges when starting to surf is understanding weather and wave forecasts, and knowing where to surf based on them. Most available sources present technical data and multiple charts that are difficult to interpret, especially for beginners. On the other hand, platforms that simplify this information often fail to stay consistently updated.
@@ -20,7 +20,7 @@ The architecture follows a serverless event-driven pattern with two Lambda funct
 
 ![Architecture](/SwellGuideBlog/architecture.svg)
 
-This decoupling means each component has a single responsibility. The spot publisher doesn't know about weather APIs. The campaign processor doesn't care where spot data came from. This separation allows any piece to evolve independently.
+This decoupling keeps each Lambda focused. The first handles data preparation (loading spots and conditions, enriching the payload). The second handles the entire processing pipeline: fetching weather, running AI analysis, rendering HTML, and delivering campaigns. Neither knows about the other's internals.
 
 ### Technologies Chosen
 
@@ -81,7 +81,7 @@ return {
 
 ### Why an LLM Was the Right Tool
 
-The core problem wasn't "add AI to sound modern." It was: *how do you transform technical weather JSON into natural-language insights without manually writing hundreds of conditional rules? "*
+The core problem wasn't "add AI to sound modern." It was: *how to transform technical weather JSON into natural-language insights without manually writing hundreds of conditional rules?"*
 
 Consider what rule-based processing would require:
 - Wind direction mapping (0-360° → 16 cardinal directions)
@@ -187,10 +187,10 @@ const startTime = dayjs().tz('America/Sao_Paulo')
 The git history tells the story:
 
 ```
-c8e96af refact: ajustar o prompt para eliminar redundâncias
-41fb010 fix: corrigir o nome da variável das condições
+c8e96af refact: adjust prompt eliminate redundancies
+41fb010 fix: fix conditions variable name
 8f55009 refact: new prompt with tide instructions
-0a616f5 refact: aprimoramento do LLM e aumento dos parâmetros
+0a616f5 refact: enhance LLM e set a bigger parameter
 ```
 
 Each commit represents a production issue. The LLM used "metro" instead of "meio metro." It recommended beaches with offshore winds. It formatted times inconsistently.
@@ -239,7 +239,7 @@ if (!tagIdLocal || !tagIdStatus) {
 
 ---
 
-SwellGuide started as a personal project to solve my own problem: understanding when and where to surf. Today it delivers daily bulletins to 50+ surfers across Florianópolis.
+SwellGuide started as a personal project to solve a problem I already faced: understanding when and where to surf. Today it delivers daily bulletins to 50+ surfers across Florianópolis.
 
 The stack is intentionally simple: two Lambdas, one queue, one LLM, one email service. No Kubernetes. No microservices mesh. No real-time streaming. Just enough architecture to solve the problem reliably.
 

@@ -36,7 +36,12 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-archivo), -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -166,6 +171,7 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -246,12 +252,36 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
-.project-tech {
+.project-bullets {
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.project-bullets-title {
   font-family: var(--font-dm-sans), sans-serif;
   font-size: 0.9rem;
+  line-height: 1.8;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.project-bullets-description {
+  font-family: var(--font-dm-sans), sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 24px;
+  color: var(--text-secondary);
+  font-weight: 400
+}
+
+.project-tech {
+  font-family: var(--font-dm-sans), sans-serif;
+  font-size: 0.925rem;
   color: var(--text-muted);
   margin-bottom: 12px;
-  margin-top: -8px;
+  margin-top: -4px;
   font-weight: 400;
 }
 

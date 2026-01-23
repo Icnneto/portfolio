@@ -1,42 +1,6 @@
-export default function ProjectsPage() {
-  const projects = [
-    {
-      name: "Fomenta",
-      award: "Programa Nascer - FAPESC",
-      description: "An end-to-end SaaS platform for researchers to discover and access funding opportunities through AI-powered recommendations. As the sole full-stack developer, I architected and implemented both the data infrastructure and user-facing application. The backend leverages Puppeteer for automated web scraping, orchestrating a sophisticated LangChain pipeline where LLMs extract and validate data from HTML, while a second model summarizes grant PDFs (converted via LlamaParse). This feeds a scalable AWS microservices architecture deployed via SAM. The frontend is a production-ready Next.js 14+ application with App Router, featuring Stripe subscription management, Supabase authentication, and personalized AI recommendations powered by OpenAI/Gemini APIs. The platform implements layered architecture with clear separation of concerns, role-based access control (newsletter/premium/enterprise tiers), real-time payment webhooks, and is deployed on Cloudflare Pages with Edge Functions for global performance. Technologies include TypeScript, Tailwind CSS, PostgreSQL, and comprehensive type-safe data flows across the entire stack.",
-      tech: "Next.js, Typescript, Node.js, Puppeteer, LangChain, LlamaParse, AWS (SAM, Lambda, SQS, EventBridge)",
-      link: "https://fomenta.com.br"
-    },
-    {
-      name: "SwellGuide",
-      award: "",
-      description: "An innovative solution that translates the complexity of weather forecasts into a daily newsletter with sea condition analysis in natural language. As the creator and sole developer, I implemented an automated workflow in Python, orchestrated with LangChain, to consume data from weather APIs, process this information through an LLM to generate insights, and manage the sending of email campaigns. I was responsible for the entire project lifecycle, from system architecture and back-end/front-end development to infrastructure setup and integrations",
-      tech: "Node.js, LangChain, API Integrations, Tailwind CSS, Javascript, AWS (SAM, Lambda, SQS, EventBridge)",
-      link: "https://swellguide.com.br"
-    },
-    {
-      name: "Icarus Solar Agent",
-      award: "",
-      description: "AI-powered chat agent that helps homeowners evaluate solar panel investments. Analyzes your roof's solar potential and calculates personalized ROI based on your location and electricity usage. Features include: real-time roof analysis via Google Solar API | personalized investment calculations (payback period, savings, CO2 offset). Based on the user informations, the agent knows which tools to call in order to present the results in natural language",
-      tech: "Next.js, Vercel AI SDK, OpenAI, Typescript, Tailwind",
-      link: "https://solar-panel-agent.vercel.app/"
-    },
-    {
-      name: "User Auth",
-      award: "",
-      description: "This is a study project created to explore and implement a complete user authentication flow using Node.js, Express, Passport.js, and MongoDB on the backend, along with a simple HTML/CSS/JS frontend. The main goal is to deepen my understanding of backend concepts like routing, middleware, encryption, and session management while building a functional login system.",
-      tech: "Node.js, Express.js, Passport.js, MongoDB, Javascript",
-      link: "https://github.com/Icnneto/passportNodejs_auth"
-    },
-    {
-      name: "TypeScript CRUD REST API",
-      award: "",
-      description: "This project was created as a hands-on approach to studying the TypeScript language. It implements a CRUD REST API that allows interaction with a MongoDB database.",
-      tech: "Typescript, MongoDB",
-      link: "https://github.com/Icnneto/typescript_api_study"
-    }
-  ]
+import { projects } from "@/data/projects"
 
+export default function ProjectsPage() {
   return (
     <div className="section">
       <h2 className="section-heading">Selected Work</h2>
@@ -47,6 +11,16 @@ export default function ProjectsPage() {
             <h3 className="project-name">{project.name}</h3>
             {project.award && <p className="project-tech">{project.award}</p>}
             <p className="body-text">{project.description}</p>
+            {project.bullets?.map((bullet, index) => (
+
+              <ul key={index} className="project-bullets">
+                <li>
+                  <p className="project-bullets-title">{bullet.title}</p>
+                  <p className="project-bullets-description">{bullet.description}</p>
+                </li>
+              </ul>
+
+            ))}
             <p className="project-tech">{project.tech}</p>
             <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-link">
               view project →

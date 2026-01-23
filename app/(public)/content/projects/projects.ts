@@ -22,7 +22,7 @@ export const projects: Project[] = [
       { title: "AI Engineering", description: "Implemented a secure LangChain pipeline with guardrails and rate limiting to ensure reliability and cost control" },
       { title: "Production Features", description: "Built role-based access control, Stripe subscription management, and real-time payment webhooks, ensuring a complete commercial lifecycle" },
     ],
-    tech: "Next.js, Typescript, Node.js, Puppeteer, LangChain, LlamaParse, AWS (SAM, Lambda, SQS, EventBridge)",
+    tech: "Next.js - Typescript - Node.js - Puppeteer - LangChain - LlamaParse - AWS",
     link: "https://fomenta.com.br"
   },
   {
@@ -34,7 +34,7 @@ export const projects: Project[] = [
       { title: "Decoupled Architecture", description: "Built a modular system allowing for the rapid addition of new surf spots without significant code changes, facilitating easy scaling" },
       { title: "Automation Workflow", description: "Created an automated Node.js workflow orchestrated with LangChain to consume weather APIs, process insights via LLM, and dispatch campaigns" },
     ],
-    tech: "Node.js, LangChain, API Integrations, Tailwind CSS, Javascript, AWS (SAM, Lambda, SQS, EventBridge)",
+    tech: "Node.js - LangChain - API Integrations - Tailwind CSS - Javascript - AWS",
     link: "https://swellguide.com.br"
   },
   {
@@ -45,7 +45,7 @@ export const projects: Project[] = [
       { title: "Architecture", description: "Implemented a streaming chat interface using Vercel AI SDK and function calling to orchestrate tools sequentially" },
       { title: "Integrations", description: "Integrated Google Solar API to retrieve real-time geospatial data for accurate ROI and CO2 offset calculations" },
     ],
-    tech: "Next.js, Vercel AI SDK, OpenAI, Typescript, Tailwind",
+    tech: "Next.js - Vercel AI SDK - OpenAI - Typescript - Tailwind",
     link: "https://solar-panel-agent.vercel.app/"
   },
 ]

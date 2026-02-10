@@ -1,0 +1,166 @@
+---
+title: "System Design Basics: Caching"
+date: "February 10, 2026"
+readTime: "5-6 min read"
+excerpt: "A simple approach on caching for System Design"
+tags: ["basics", "system design", "cache", "programming"]
+---
+
+Hello, and thank you for joining me again!
+I am starting a series of posts about System Design Basics! The idea is to write about different topics that, together, can give us a broader vision on system design.
+
+It is important to mention that this series is highly inspired by [Hello Interview - Core Concepts articles](https://www.hellointerview.com/learn/system-design/core-concepts/caching)! Give them a look, it is more than worth it!
+
+For this post (#1), we are focusing on Cache! I expect that at the end of this blog you will be able to talk about what caching is, where to place it, existing architectures, eviction policies and common issues/challenges.
+
+## Defining Caching
+
+At its core, caching is the practice of storing copies of data in a temporary storage location, so that future requests for that specific data can be served faster.
+
+More technically, a cache is usually a high-speed data storage layer (like RAM) that sits in front of a slower, permanent storage layer (like a Hard Drive or SQL Database).
+
+For example, a Domain Name System (DNS) caches DNS records to enhance lookup performance, **Content Delivery Networks (CDN)** use caching to reduce latency, web browsers cache HTML files, images, and JavaScript for faster website loading, and we could go on forever….
+
+## Where to Place a Cache
+
+You can place a cache at almost every layer of a computing system. But for the sake of simplicity, here are the four most common:
+
+### External Caching
+
+The external cache lives in its own separate layer, independent of the application or the database. For this approach, technologies like Redis or Memcached are well known!
+
+One of the main benefits of external caching is **scalability**. Since the cache is shared across all application servers, any server can read or write to it. For example, if Server A caches a user profile, Server B can access it immediately without having to query the database again.
+
+### In-Process Caching
+
+The cache is stored directly in the application’s memory on the server running the code.
+
+As there is no network travel time to reach for the cached information, this approach is extremely fast! It makes sense when you need to store small pieces of data that rarely change (config values, feature flags or precomputed values).
+
+On the other hand, each instance of your application might have different versions of the data (inconsistency).
+
+### CDN (Content Delivery Network)
+
+A network of geographically distributed servers that caches static assets — as mentioned earlier — like images, CSS, and videos closer to the user.
+
+This means that, if your user is in London, they can download a copy of your content from a London server, instead of from the main server at São Paulo. This approach enhances performance as it minimizes latency per request.
+
+### Client-Side Caching
+
+Client-side caching stores data directly on the user’s device, usually a web browser (localStorage, HTTP cache) or mobile app using local memory or on-device storage.
+
+As data is already on the user’s machine, it has zero network latency, which provides an instant load.
+
+## Cache Architectures
+
+When designing a system, it is really important to understand and decide how the application, the cache, and the database interact. This decision will impact performance, consistency and complexity.
+
+### Cache-Aside
+
+This is the most common pattern. The application is responsible for coordinating the data.
+
+1. App checks cache
+2. If **Hit:** Return data (”hit” means data was at cache layer)
+3. If **Miss**: App reads from DB
+   - App updates cache
+   - Return data
+
+This architecture is **resilient** — if the cache fails, our system still works. One observation is that the first request might be slower, due to the absence of data at the cache level.
+
+### Write-Through
+
+The application writes data **only** to the Cache, then (cache) writes to the Database **synchronously** before returning to the application.
+
+1. App writes to Cache.
+2. Cache writes to Database.
+3. Write is confirmed only when both are done.
+
+Although we aim for bigger consistency here, as we try to keep the cache synchronized with the database, we expose our application to the dual-write problem. If the cache update succeeds but the database write fails, the system can end up inconsistent.
+
+Also, it is worth noting that we have slower write operations (application must wait for both), and we might be caching data that will never be read (waste of memory allocation).
+
+### Write-Behind (Write-Back)
+
+Unlike the previous approach where writes are synchronous, Write-Behind uses **asynchronous** logic. The application writes to the cache, then, cache batches and writes the data to the database asynchronously in the background.
+
+1. App writes to Cache and gets immediate confirmation.
+2. Cache updates Database in the background.
+
+This architecture has **extremely fast** write performance, and can reduce load on the database (as it can batch multiple writes into one).
+
+On the other hand, it presents a **high risk of data loss**. If the cache crashes before it updates the DB, that data is gone!
+
+### Read-Through
+
+Similar to Cache-Aside, but the application treats the Cache as the main data store. The Cache itself is responsible for fetching from the DB if data is missing, not the application.
+
+1. App reads cache
+2. If cache **miss**:
+   - Fetch from database
+   - Cache data
+   - Return info for the application
+
+## Cache Eviction Policies
+
+A cache has limited space. When it gets full, you must decide what to delete to make room for new data. This decision is called "eviction."
+
+### Least Recently Used (LRU)
+
+**"If you haven't used it in a while, you probably won't need it soon."**
+The system removes the item that was accessed longest ago. This is the industry standard for most web applications.
+
+### Least Frequently Used (LFU)
+
+**“If you rarely use it, get rid of it.”**
+
+In this policy, the system tracks how many times an item is accessed. Items with the lowest count are removed. It is not easy to implement; some systems use approximate LFU to avoid the high cost of precise tracking.
+
+### First-In-First-Out (FIFO)
+
+**"Oldest items leave first."**
+
+Similar to a queue data structure. The item that has been in the cache the longest is removed, regardless of how often it is accessed.
+
+### Time-To-Live (TTL)
+
+**“This data self-destructs in x minutes.”**
+
+Items are automatically deleted after a set period, regardless of space. This is crucial for data that changes frequently, like stock prices or news feeds.
+
+## Common Issues/Challenges
+
+Caching is a really useful and important strategy, but implementing it can introduce some complexities. In order to understand trade-offs, let's check some edge cases.
+
+### Cache Stampede (Thundering Herd)
+
+Imagine a popular cache key (like "homepage_news") expires. Suddenly, 10,000 users request that data simultaneously. All 10,000 requests see a "Cache Miss" and hit the database at the exact same millisecond, potentially crashing it.
+
+Ways to handle it:
+
+1. **Request Coalescing (Singleflight):** The system detects that multiple users are asking for the same data. It allows only the *first* request to go to the database. The other 9,999 requests are made to wait. Once the first request returns, the result is shared with everyone
+2. **Cache Warming:** You run a script to populate the cache before it expires or before high traffic hits, ensuring users never face a "cold" cache.
+3. **Probabilistic Early Expiration**: If a key expires in 60s, you might randomly re-fetch it at 55s or 58s, so the refresh happens before the stampede begins.
+
+### Cache Consistency
+
+Keeping the Cache and the database **in sync** is a common and well-discussed problem in software engineering. This happens because most systems read from the cache but write to the database first. For example, given a user profile update that has been written to the database, the application might still be serving other users with the previous profile version, because the Cache hasn’t been updated yet.
+
+Ways to handle it:
+
+1. **Short TTLs**: Even if data is stale, a short Time-To-Live (e.g., 5 seconds) ensures the bad data doesn't persist for long.
+2. **Explicit Invalidation**: When the application writes to the database, it must immediately send a command to DELETE or UPDATE that specific key in the cache.
+
+### Hot Keys
+
+Sometimes, a single key is accessed so frequently (Twitter profile of a celebrity during a scandal) that a single cache server node cannot handle the traffic, creating a bottleneck while other nodes sit idle.
+
+1. **Local Caching (L1 Cache)**: Add a small in-memory cache directly on the application servers. Even if it stores the data for just 1 second, it saves thousands of trips to the main cache.
+2. **Key Replication**: Create multiple copies of the hot key (e.g., key_1, key_2, key_3) and distribute them across different nodes. Randomly route user requests to one of these copies.
+
+## Wrap Up
+
+Caching is one of those concepts that sounds simple on the surface but quickly reveals its depth once you start making real decisions: where to place it, which architecture to use, how to handle eviction, and how to deal with edge cases like stampedes or consistency gaps.
+
+The key takeaway is that there is no one-size-fits-all solution. Every caching decision involves trade-offs between speed, consistency, complexity and resilience. Understanding these trade-offs is what makes the difference when designing systems at scale.
+
+If you want to go deeper, I highly recommend checking the [Hello Interview - Caching article](https://www.hellointerview.com/learn/system-design/core-concepts/caching) that inspired this post. Stay tuned for the next entry in the System Design Basics series!

@@ -1,0 +1,102 @@
+---
+title: "System Design Basics: Database Sharding"
+date: "March 21, 2026"
+readTime: "7-8 min read"
+excerpt: "A simple approach on database sharding for System Design"
+tags: ["basics", "system design", "sharding", "programming"]
+---
+
+Hello, and thank you for joining me again!
+I am starting a series of posts about System Design Basics! The idea is to write about different topics that, together, can give us a broader vision on system design.
+
+It is important to mention that this series is highly inspired by [Hello Interview - Core Concepts articles](https://www.hellointerview.com/learn/system-design/core-concepts/sharding)! Give them a look, it is more than worth it!
+
+For this post (#2), we are focusing on **Sharding**!
+
+## What is database sharding?
+
+When an application starts growing, consequently, the amount of data it needs to store will increase over time. As data volume becomes too large and the application has to deal with too many reads and writes, the database becomes a **bottleneck**, affecting customer experience and slowing down the whole operation.
+
+No problem! Just upgrade to a larger database instance with more processing and storing capacity... The problem is that this only works for a short while.
+
+Eventually the application hits the ceiling of what a single machine can handle. Then, when **vertical scaling** and other optimizations are no longer enough, we need to move from **scaling up** to **scaling out**, and that is: splitting our database across multiple machines.
+
+Database sharding is, in simple terms, the process of **splitting data into smaller chunks, called shards, and storing them across several database servers.**
+
+## What are the benefits?
+
+**Improve response time:** As we split our monolithic database into smaller sets of data, each shard has fewer rows than the entire database, hence, **it takes less time to retrieve specific information**, or run a query. (given a scenario where queries can be routed to a single shard)
+
+**Availability:** Distributing parts of the database across multiple machines **prevents a single point of failure** from causing a total system outage. It means that downtime doesn't take the whole application. Important to mention that sharding is often done along with **data replication**, so, in this case, when one shard becomes unavailable, that specific data can be accessed and restored from another shard.
+
+**Scaling:** Sharding allows an application to **scale horizontally** as data volume increases, without requiring significant downtime (that is why choosing the correct shard key is really important - we'll get there).
+
+## How to choose a shard key?
+
+First of all, a **shard key** is the field or column we use to split the dataset that, consequently, defines how data is grouped.
+
+That said, the process of selecting a good/optimal shard key is crucial for the application. A poor decision leads to consequences such as **uneven data distribution, hot spots and distributed queries** (slow operations) to gather the necessary information.
+
+But then, how to choose a good shard key?
+
+An optimal key should have a **high cardinality**, **even distribution, and should align with the application's most common access patterns.** (some teams use **Compound Shard Keys**, one column isn't enough to guarantee high cardinality, so engineers combine two fields)
+
+It means that the chosen key should have (or be able to have) **many unique values**. Imagine sharding by a boolean field, for the lifetime of the application, we'll only have two shards. On the other hand, if we choose to shard by user ID, it now gives us enough room to scale and distribute our data.
+
+In addition, the content (values) should **spread evenly across shards**, which means consistent distribution in order to avoid hot spots! If you choose to shard based on user birth date, but your application is focused on gen X, then, you might find yourself in trouble.
+
+## Methods of database sharding
+
+Now that we have chosen our shard key, we must then decide on how to distribute that data across shards. That said, let's have a quick look at some sharding strategies.
+
+### Range-based
+
+Range sharding is one of the simplest strategies. It **groups values based on pre-configured set of ranges**. We can choose a shard key like user_id, then assign value ranges to shards.
+
+Based on the example above, we could allocate users_id in range of 1 to 1,000 at Server A and 1,001 to 2,000 at Server B, and so on.
+
+Although pretty straightforward and simple, it could lead to **hot spots** depending on the shard key we've chosen. For example, if we choose our shard key as created_at, and we allocate all new users to Server B, this server will do all the job while Server A could sit idle.
+
+### Geo-based
+
+In this strategy, our database sharding takes into consideration the **geographical server distribution based on users' physical location**. In simpler terms, the data from users in Ireland will be allocated to servers based in EU, on the other hand, users based in Brazil have their servers in South America.
+
+This method is one way of **reducing application latency** for a better user experience and help companies address **compliance requirements** given geographical locations. One great example is a users table sharded by region (EU, US, LATAM).
+
+### Hash-based
+
+Hash sharding is a method based on a **mathematical function (hash function)** to evenly distribute records across shards. As mentioned earlier, if we pick user_id as our shard key, instead of distributing based on ranges, we get the value of the ID, hash it, and use the result to pick a shard.
+
+**Consistency and even distribution** — this is one of the main advantages of using a hash function to map out the distribution. On the other hand, we add complexity when we need to **add or remove shards** (servers). This is because the hash function uses a modulo that references the number of shards (servers) currently available to distribute records, and, whenever this number changes, we must **repartition our data and move massive amounts of data around**.
+
+To address this, **consistent hashing** places both the data and the servers on a conceptual 'ring,' meaning only a small fraction of data needs to move when a server is added or removed. This is a fascinating topic on its own, and I'll be dedicating an entire future post to deep-diving into how it works!
+
+### Directory-based
+
+In this method we set a **lookup table** to decide where each record lives. We decouple the shard key from physical placement by attributing a key (shard key) to values (shards).
+
+Advantages: **flexibility** — if some user generates huge traffic you can move them to a dedicated shard. When we need to rebalance, just update the lookup table. Downsides: **every single request requires a lookup**, and this adds latency to our reads or writes. Also, if the directory where our map table lives goes down, our **entire system stops**, even if our data shards are healthy.
+
+## What are the Challenges?
+
+As we've seen, sharding is a powerful tool to scale our database, but it is **not a silver bullet**. Distributing data across multiple servers adds a significant layer of complexity to the system. Let's look at some of the main challenges we might face.
+
+### Hot Spots and load imbalance
+
+We briefly touched on this when discussing how to choose a shard key, but it remains one of the most common headaches. A **hot spot** happens when one specific shard receives a **disproportionate amount of traffic or data** compared to the others. Even if the data is distributed evenly, certain records or users might suddenly generate massive traffic. When one server takes all the heavy lifting while the others sit idle, it becomes a bottleneck, defeating the original purpose of scaling out.
+
+### Cross-shard operations
+
+In a single database, running a query that joins multiple tables is standard practice. However, when our data is partitioned across several machines, running those same queries becomes a massive challenge. If an operation needs to **fetch or join data that lives in different shards**, the system has to query each server individually, pull the data over the network, and stitch it back together. These **distributed queries are notoriously slow and expensive**, directly impacting the response times we were trying to improve.
+
+### Maintaining consistency
+
+In a monolithic setup, we rely on the database to handle transactions safely. If an operation fails halfway through, the database rolls everything back, maintaining data consistency. In a sharded environment, a single transaction might need to **update data on two or more separate servers** at the same time. If the update succeeds on Server A but fails on Server B, our data is now **inconsistent**. Fixing this requires implementing **distributed transactions**, which adds a lot of complexity and overhead to our architecture.
+
+### References
+
+[Hello Interview - Sharding](https://www.hellointerview.com/learn/system-design/core-concepts/sharding)
+
+[AWS - What is Database Sharding?](https://aws.amazon.com/what-is/database-sharding/)
+
+[Google Cloud - What is Database Sharding](https://cloud.google.com/discover/what-is-database-sharding)

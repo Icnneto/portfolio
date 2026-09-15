@@ -10,9 +10,14 @@ export function Stats() {
     // Fetch and increment views
     useEffect(() => {
         const fetchViews = async () => {
-            const res = await fetch('/api/stats');
-            const data = await res.json();
-            setViews(data.views);
+            try {
+                const res = await fetch('/api/stats');
+                if (!res.ok) return;
+                const data = await res.json();
+                setViews(data.views);
+            } catch (error) {
+                console.error('Failed to fetch views:', error);
+            }
         };
 
         const incrementViews = async () => {
@@ -23,6 +28,7 @@ export function Stats() {
                 hasIncrementedRef.current = true;
                 try {
                     const res = await fetch('/api/stats', { method: 'POST' });
+                    if (!res.ok) return;
                     const data = await res.json();
                     setViews(data.views);
                     sessionStorage.setItem(sessionKey, 'true');

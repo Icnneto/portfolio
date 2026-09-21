@@ -8,7 +8,10 @@ export default function ProjectsPage() {
       <div className="projects-list">
         {projects.map((project, index) => (
           <div key={index} className="project-item">
-            <h3 className="project-name">{project.name}</h3>
+            <h3 className="project-name">
+              {project.name}
+              {project.status && <span className="project-status">{project.status}</span>}
+            </h3>
             {project.award && <p className="project-tech">{project.award}</p>}
             <p className="body-text">{project.description}</p>
             {project.bullets?.map((bullet, index) => (
@@ -22,9 +25,11 @@ export default function ProjectsPage() {
 
             ))}
             <p className="project-tech">{project.tech}</p>
-            <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-link">
-              view project →
-            </a>
+            {project.link && (
+              <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-link">
+                view project →
+              </a>
+            )}
           </div>
         ))}
       </div>

@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Israel Nunes",
-  description: "Personal portfolio showcasing my work and projects",
+  description: "Full Stack Engineer building AI products and multi-agent systems.",
 };
 
 export default function RootLayout({

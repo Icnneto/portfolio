@@ -2,25 +2,25 @@ export default function HomePage() {
   return (
     <div className="section">
       <p className="intro-text">
-        Hello, I'm Israel Nunes! I'm a software engineering student passionate about building meaningful web applications
+        Hello, I'm Israel Nunes — a Full Stack Engineer building AI products and multi-agent systems.
       </p>
 
       <p className="body-text">
-        I'm actively involved in independent projects and bring a background that bridges both administrative and technological environments
-      </p>
-      
-      <p className="body-text">
-        I'm continuously learning and evolving in the field of software development, with a focus on building complete solutions from front-end to back-end.
+        I'm cofounder of RBBT, where we build multi-agent systems that run real operations, and of Fomenta, an AI-powered platform that helps researchers find and access funding.
       </p>
 
       <p className="body-text">
-        You'll find in this profile my journey from learning fundamentals to creating real-world solutions
+        Most of my work lives where the AI layer meets production: data pipelines, orchestration, guardrails, and the unglamorous parts that decide whether a system holds up outside a demo.
+      </p>
+
+      <p className="body-text">
+        I build end-to-end — from the interface to the infrastructure — and I like problems where the hard part isn't the model, it's everything around it.
       </p>
 
       <div className="highlight-section">
-        <h2 className="section-heading">Current</h2>
+        <h2 className="section-heading">Now</h2>
         <p className="body-text">
-          Currently studying Full-Stack development at FIAP and transitioning into tech with a purpose: <span className="font-semibold">build tools that simplify processes and empower people.</span>
+          Building agent systems at RBBT and scaling Fomenta. Interested in how autonomous agents earn trust: <span className="font-semibold">observability, boundaries, and knowing when a machine should hand the decision back to a person.</span>
         </p>
       </div>
 

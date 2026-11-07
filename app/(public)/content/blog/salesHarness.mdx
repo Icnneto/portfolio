@@ -1,0 +1,138 @@
+---
+title: "Agents Are the Easy Part: The Harness Behind an AI Sales Team"
+date: "November 7, 2026"
+readTime: "7-8 min read"
+excerpt: "Agents, memory, cycles and decisions: the system around the model that lets an AI sell responsibly"
+tags: ["architecture", "ai", "agents", "governance", "solutions"]
+---
+
+At RBBT we build an AI that sells through conversation. It answers customers of e-commerce brands on WhatsApp and web chat, recommends products, builds carts, sends checkout links and handles post-sale questions. When I explain it, people usually ask about the prompt.
+
+The prompt is the smallest part of the system. A frontier model already knows how to talk. What it doesn't know is:
+
+- which brand it is speaking for;
+- what this customer bought last month;
+- which actions it is allowed to take;
+- when to stop and call a person;
+- who answers for the result.
+
+Everything that supplies those answers is what I call the **harness**: the structure around the model.
+
+This post is about that harness: its agents, its memory, the cycles it runs on and the way it makes decisions. It is not a recipe. It is the reasoning behind the shape.
+
+## Boundaries before agents
+
+The first decision was to design the domain before designing any agent. A sales conversation is not one job. It spans several areas, each with its own vocabulary and its own failure modes:
+
+- working out who is talking;
+- understanding what they want;
+- recommending;
+- closing an order;
+- answering questions about an order that already exists.
+
+Each of these became a **bounded capability** with its own language, data and tools, and every agent lives inside exactly one of them. That is the difference between a native agent and a chatbot with many tools: the boundary comes first, and the agent inherits its scope from it.
+
+[![Anatomy of the harness](/sales-harness__anatomy.png)](/sales-harness__anatomy.png)
+
+A few consequences of that shape:
+
+**One owner per turn.** Orchestration reads each incoming message and hands the turn to exactly one agent. A committee never answers the customer.
+
+**Least privilege.** The selling agent builds carts and the post-sale agent looks up orders, and neither carries the other's tools. If one of them misbehaves, the damage stays inside its own capability.
+
+**Vendors stay outside.** Commerce platforms, messaging channels and even the language model sit behind anti-corruption layers. The same selling logic runs on Shopify and Nuvemshop, and replacing a provider means changing an adapter, not rewriting the core.
+
+**A human is a first-class path.** When the system is uncertain, blocked or asked for something sensitive, it hands the conversation to the brand's team, with context. Escalation is the safe default, not an error state.
+
+## Memory: facts first, context last
+
+The naive approach to memory is to stuff the chat history into the prompt. It breaks quickly:
+- it is expensive;
+- it leaks data from one purpose into another;
+- the model treats a rumor and a fact the same way.
+
+We treat memory as a pipeline that starts with facts. Orders, the products a customer looked at, tags from conversations and the brand's catalog are recorded as they happen. Background jobs turn those facts into **projections**:
+- what the person bought, and in which variations;
+- what they saw and didn't buy;
+- how this brand names its sizes and colors.
+
+Only at the last step, on every turn, does a composer build a short context block for the agent that owns the turn.
+
+[![Memory: facts in, need-to-know out](/sales-harness__memory.png)](/sales-harness__memory.png)
+
+That last step holds the most important rule: **need-to-know, per agent**.
+- The selling agent sees the history it needs to recommend well.
+- The post-sale agent sees orders and nothing else.
+- A follow-up message gets only the tone of the relationship.
+
+This is enforced in code, not requested in a prompt.
+
+Two details I'm proud of:
+
+**Language is memory too.** Every brand names things differently. The system learns each brand's vocabulary from its own catalog and speaks it back, instead of forcing a generic taxonomy on the customer.
+
+**Privacy is a design input.** Brazil's data protection law (LGPD) shaped the pipeline from the start, and the DPO reviews and ratifies decisions about personal data before they ship. For example, to discuss an order the customer proves it is theirs with an e-mail and an order number. The agent never "confirms" an order by echoing back its date or value. That shortcut would have been convenient: we built it, measured it, and deliberately kept it switched off.
+
+## Four clocks
+
+A harness is not only structure; it is timing. Ours runs on four clocks. Each is slower than the one before it, and each protects the faster ones.
+
+[![The four clocks](/sales-harness__clocks.png)](/sales-harness__clocks.png)
+
+**The turn (seconds).** A turn has a latency budget. If the customer sends another message mid-turn, the turn in flight can be preempted instead of answering a question that is already out of date. The brand's team can take over a conversation at any moment.
+
+**Background (minutes to hours).** Projections are rebuilt, catalogs are snapshotted and follow-ups are scheduled. Everything a turn reads is prepared ahead of time, so the turn itself stays fast and predictable.
+
+**Learning (days).** Evaluation is infrastructure, not a phase.
+- Real flows are replayed against new versions.
+- Live evaluations run with pinned settings.
+- We track routing accuracy, recommendation quality and conversion.
+- Nothing merges without the full gate: hermetic test suites, architecture guards and boundary checks.
+- After a deploy, a first-hour check compares production signals with what we expected.
+
+**Life (weeks).** The slowest clock keeps the design and the code from drifting apart. Contracts between capabilities are frozen before anyone builds against them. When reality disagrees, the contract is amended and ratified first, and the code follows. A guard fails the build when the design says one thing and the code does another.
+
+The principle behind all four: **observability comes before autonomy**. Each step of autonomy is earned with measurements, and the measurements keep running after it is earned.
+
+## Decisions are artifacts
+
+The part of the harness that surprises people most is how much of it is written down. Sales alone has more than a hundred decision records, plus product requirement documents and versioned contracts with a ratification log. Each decision has an owner, a date and a reason.
+
+[![The decision loop](/sales-harness__decisions.png)](/sales-harness__decisions.png)
+
+Three ideas make this work:
+
+**Agents propose, people ratify.** Every capability has a named human owner, the Context Owner, who ratifies product decisions; the DPO ratifies anything that touches personal data. Agents are classified by autonomy tier (read-only, suggest, act-with-review, autonomous) and move between tiers only on evidence.
+
+**Decisions can ship dormant.** Engineering often moves faster than ratification. Instead of blocking one on the other, we ship the capability behind a flag that holds the decision until it is ratified. The code is ready, and the decision is not rushed.
+
+**Tests pin decisions.** Once a decision is ratified, a test encodes it. Changing the behavior later means changing the test on purpose, with the new ruling recorded next to it.
+
+When someone asks "why does it work like this?", the answer is a link, not a meeting. That is what lets a small team change a complex system without re-deciding it every quarter.
+
+## The builders are agents too
+
+The harness is built the same way the product works:
+
+1. An architect agent turns my intent into a requirements document and a kickoff.
+2. Executor agents implement it in small slices, tests first: a failing test, then the change that makes it pass.
+3. They replay every gate locally and report evidence on the pull request: test output, measurements, before-and-after screenshots.
+4. I review, ratify, merge and deploy. Most of that conversation happens in a WhatsApp group.
+
+The same principles hold for the builders:
+- An executor works only on its own branch.
+- Kickoffs and reports live next to the code.
+- Every claim comes with proof.
+- The agents keep a memory of operational lessons (what broke, which rule exists and why), so the team doesn't pay for the same mistake twice.
+
+My job moved from writing most of the code to owning the context: deciding what matters, ratifying, and saying no.
+
+## What I'd tell another CTO
+
+If you are putting agents in front of customers, three things matter more than the model you choose:
+
+1. **Put boundaries before agents.** Models are interchangeable; your domain model is not.
+2. **Make autonomy earn its keep.** Measure first, then widen what the agent may do, and keep measuring.
+3. **Make decisions addressable.** If you can't point to where a decision lives, you will make it again, probably differently.
+
+The agents are the visible part. The harness is what lets them sell, and what lets the business sleep at night.

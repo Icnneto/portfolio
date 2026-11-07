@@ -1,0 +1,246 @@
+---
+title: "Da Ideia à Produção: Como Construí o SwellGuide de Ponta a Ponta"
+date: "14 de janeiro de 2026"
+readTime: "8-9 min de leitura"
+excerpt: "Do zero ao 1 - como transformei uma ideia em código de verdade"
+tags: ["solutions", "architecture", "serverless", "ai", "programming"]
+---
+
+Um dos maiores desafios de quem começa a surfar é entender as previsões de tempo e de ondas e saber onde surfar com base nelas. A maioria das fontes disponíveis apresenta dados técnicos e vários gráficos difíceis de interpretar, principalmente para iniciantes. Por outro lado, as plataformas que simplificam essas informações muitas vezes não se mantêm atualizadas com consistência.
+
+Pensando nisso, nasceu o SwellGuide, para ajudar surfistas e amantes do mar a entender com facilidade as condições de ondas e de tempo, e ainda recomendar onde surfar com base em dados reais. Hoje ele traduz as previsões de surf numa newsletter diária, com uma análise das condições do mar em linguagem natural, feita para quem mora em Florianópolis - SC, e chega a mais de 50 leitores pela ilha.
+
+## Da ideia à arquitetura
+
+Nesta seção, vou destrinchar o sistema em alto nível, com foco nas decisões de arquitetura, nas tecnologias e nos padrões de comunicação usados para construir o SwellGuide (principalmente no backend).
+
+### Visão geral do sistema
+
+A arquitetura segue um padrão serverless orientado a eventos, com duas funções Lambda conectadas por SQS:
+
+![Arquitetura](/architecture-swellguide.svg)
+
+Esse desacoplamento mantém cada Lambda focada. A primeira cuida da preparação dos dados (carrega os picos e as condições e enriquece o payload). A segunda cuida de todo o pipeline de processamento: busca a previsão do tempo, roda a análise de IA, renderiza o HTML e entrega as campanhas. Nenhuma conhece os detalhes internos da outra.
+
+### Tecnologias escolhidas
+
+**Node.js**: assíncrono por natureza, com um ecossistema rico para integrações com APIs;
+
+**AWS Lambda + SQS + EventBridge**: serverless, pague pelo uso, com lógica de retentativa embutida
+
+**StormGlass API**: métricas marítimas confiáveis (ondulação, maré, vento)
+
+**LangChain + OpenAI GPT-4.1**: gestão estruturada de prompts e respostas factuais com temperatura baixa
+
+**Mailchimp Marketing API**: segmentação por público e templates profissionais
+
+**Docker**: ambientes de Lambda reproduzíveis
+
+### Padrões de comunicação
+
+**Gatilho agendado**: o EventBridge dispara um cron todos os dias às 20h, horário de Brasília:
+
+```yaml
+# template.yaml
+Events:
+  ScheduleEvent:
+    Type: Schedule
+    Properties:
+      Schedule: 'cron(0 20 * * ? *)'
+```
+
+**Processamento assíncrono com SQS**: as mensagens passam por uma fila com visibility timeout (450s) maior que o timeout da Lambda (75s), garantindo que mensagens com falha voltem para uma nova tentativa em vez de se perderem.
+
+**Resiliência em lote**: o sistema usa `Promise.allSettled()` para lidar bem com falhas parciais:
+
+```javascript
+// index.js
+const processingResults = await Promise.allSettled(
+    event.Records.map(record => processMessage(record, ...))
+);
+
+// Return failed message IDs to SQS for automatic retry
+return {
+    batchItemFailures: failures.map(f => ({ itemIdentifier: f.messageId }))
+};
+```
+
+### Por que essas escolhas
+
+**Duas Lambdas em vez de um monólito**: separar o publicador de picos do processador de campanhas faz com que as operações rápidas (carregar os dados dos picos) não dividam o limite de tempo com as operações lentas (chamadas de API + inferência do LLM).
+
+**SQS em vez de invocação direta**: a fila funciona como um amortecedor. Se a API de previsão do tempo estiver lenta ou o LLM demorar mais que o esperado, as mensagens esperam com segurança em vez de estourar o tempo.
+
+**Docker em vez de pacotes ZIP**: os containers de Lambda garantem ambientes consistentes e permitem dependências nativas sem a dor de cabeça da compilação cruzada.
+
+**Mailchimp em vez de SES puro**: o Amazon SES seria mais barato, mas o Mailchimp já vem com gestão de assinantes, segmentação e otimização de entregabilidade. Para um produto de newsletter, esses recursos importam mais que a economia.
+
+---
+
+## O papel dos LLMs (além do "hype de IA")
+
+### Por que um LLM era a ferramenta certa
+
+O problema central não era "colocar IA para parecer moderno". Era: *como transformar um JSON técnico de previsão do tempo em insights em linguagem natural sem escrever à mão centenas de regras condicionais?*
+
+Veja o que um processamento baseado em regras exigiria:
+- Mapear a direção do vento (0-360° → 16 pontos cardeais)
+- Faixas de altura de onda com a terminologia local ("meio metro", "meio metrão")
+- Análise por período do dia (padrões da manhã vs. da tarde)
+- Lógica de recomendação de praias (cruzando 15 praias com perfis de onda e vento)
+- Alertas de segurança para condições perigosas
+
+Um LLM resolve tudo isso com prompts bem estruturados e se adapta aos casos de borda sem mudanças no código.
+
+### Estrutura e restrições do prompt
+
+O arquivo do prompt tem mais de 150 linhas, organizadas em seções rígidas:
+
+```javascript
+// llmPrompt.js (simplified structure)
+const llmPrompt = `
+## Identity
+You are SwellGuide, specialized in maritime forecasting for surfers.
+
+## Core Rules
+- Use ONLY the provided JSON data. Never invent information.
+- Convert all times from UTC to Brazil time (UTC-3).
+- Wave heights: <0.5m="meio metrinho", 0.51-0.6m="meio metro"...
+- Safety: Winds >28 km/h = no surfing recommendations.
+
+## Analysis Framework
+Split forecast into Morning (06-12h) and Afternoon (13-19h).
+Recommend maximum 3 beaches based on conditions.
+
+## Output Format
+Markdown with sections. Friendly but factual tone. Maximum 3 emojis.
+
+## Input Variables
+- {local}: Location name
+- {forecast_json}: Weather + tide data
+- {conditions}: Beach profiles with ideal wave/wind directions
+`;
+```
+
+Cada praia no banco de dados tem um perfil que o LLM cruza com a previsão:
+
+```javascript
+// conditions.js
+"Praia da Joaquina": {
+    "localizacao": "Leste",
+    "ondulações": ["leste", "sudeste", "sul"],
+    "ventos": ["oeste", "sudoeste", "sul", "norte"],
+    "observações": "Uma das praias mais constantes da ilha..."
+}
+```
+
+A configuração do LLM prioriza consistência em vez de criatividade (temperatura baixa):
+
+```javascript
+// LlmConnection.js
+const llm = new ChatOpenAI({
+    model: 'gpt-4.1',
+    temperature: 0.3,  // Low creativity, factual output
+    max_tokens: 4096
+});
+```
+
+### Guardrails: consistência, prevenção de alucinação e controle de tom
+
+**Prevenção de alucinação**: o prompt proíbe explicitamente inventar:
+> "Use APENAS os dados do JSON fornecido. Se faltar informação, diga isso com clareza em vez de chutar."
+
+**Consistência**: a temperatura baixa (0.3) reduz a variação entre execuções. A mesma entrada gera uma saída parecida dia após dia.
+
+**Controle de tom**: o prompt pede um tom "amigável, mas factual" e limita o uso de emojis a 3. O exagero é proibido explicitamente:
+> "Seja honesto. Se as condições estiverem ruins, diga. Não exagere para parecer mais empolgante."
+
+**Regras de segurança**: restrições rígidas impedem recomendações perigosas:
+> "Ventos acima de 28 km/h (15 nós): não recomende surfar. Inclua um aviso de segurança."
+
+---
+
+## Desafios, erros e lições aprendidas
+
+### Primeiras abordagens que não funcionaram
+
+**Uma Lambda fazendo tudo**
+
+Minha primeira arquitetura tinha uma única função Lambda cuidando de todo o pipeline: buscar a previsão, processar os dados, rodar a IA e enviar os e-mails. Isso funcionou até a API da StormGlass ter um dia lento. A função estourou o tempo em 15 segundos, e o pipeline inteiro falhou.
+
+*A correção*: separar em duas funções, com o SQS como amortecedor. Agora as operações lentas têm o próprio limite de tempo (75 segundos), e as falhas não se propagam em cascata.
+
+### Problemas de qualidade dos dados
+
+**O caos dos fusos horários**: a primeira semana em produção mandou boletins com horários em UTC. Os surfistas recebiam "melhores condições às 14:00" quando, na verdade, eram 11:00 no horário local.
+
+```javascript
+// Fixed with explicit timezone handling
+const startTime = dayjs().tz('America/Sao_Paulo')
+    .add(1, 'day')
+    .startOf('day')
+    .add(6, 'hour');
+```
+
+### A dor de iterar no prompt
+
+O histórico do git conta a história:
+
+```
+c8e96af refact: adjust prompt eliminate redundancies
+41fb010 fix: fix conditions variable name
+8f55009 refact: new prompt with tide instructions
+0a616f5 refact: enhance LLM e set a bigger parameter
+```
+
+Cada commit representa um problema de produção. O LLM usava "metro" em vez de "meio metro". Recomendava praias com vento terral. Formatava os horários de forma inconsistente.
+
+Engenharia de prompt é depurar sem stack trace. Você testa, lê a saída, ajusta e repete.
+
+### Casos de borda da automação
+
+**Segmento de público vazio**: se nenhum assinante corresponde ao segmento do Mailchimp (local novo, tags erradas), a criação da campanha falha em silêncio. Adicionei uma validação:
+
+```javascript
+if (!tagIdLocal || !tagIdStatus) {
+    console.error('Missing segment tags for:', tags);
+    return null;
+}
+```
+
+### O que eu redesenharia hoje
+
+**Adicionar observabilidade**: hoje, depurar exige ler os logs do CloudWatch na mão. Eu adicionaria logs estruturados com IDs de correlação e configuraria alertas para as taxas de falha.
+
+**Testar o prompt**: não há testes automatizados para a qualidade da saída do LLM. Eu montaria uma suíte de testes com entradas de exemplo e padrões de saída esperados (regex para as seções obrigatórias e validação de formato).
+
+**Separar a renderização do e-mail**: o pipeline de geração do HTML (Markdown → HTML → Template → CSS inline) está muito acoplado à função da campanha. Extraí-lo facilitaria os testes e o reaproveitamento.
+
+---
+
+## Lições aprendidas
+
+### Técnicas
+
+- **Timeouts se propagam em cascata**: se o serviço A chama o serviço B, o timeout de A precisa ser maior que o tempo esperado de B, com folga. O visibility timeout do SQS (450s) maior que o timeout da Lambda (75s) me salvou de perder mensagens.
+- **LLMs precisam de restrições explícitas**: prompts vagos geram respostas vagas. Toda conversão de unidade, escolha de terminologia e exigência de formato precisa estar documentada no prompt.
+- **Segredos moram no Secrets Manager**: chaves de API no código são uma dívida técnica que só cresce. Centralizar a gestão de segredos se paga na hora.
+
+### De arquitetura
+
+- **Desacople por responsabilidade, não por tecnologia**: a divisão em duas Lambdas não é sobre Lambda — é sobre separar "operações rápidas" de "operações lentas", que têm modos de falha diferentes.
+- **Filas são amortecedores**: o SQS absorve picos, cuida das retentativas e isola as falhas. A invocação direta é mais simples, mas frágil.
+- **Comece com containers**: o Docker adiciona complexidade no início, mas elimina os problemas de "na minha máquina funciona" e o inferno das dependências.
+
+### De produto
+
+- **Lance cedo, itere rápido**: a primeira versão não tinha recomendação de praias, nem dados de maré, e o prompt era básico. O feedback dos leitores moldou cada melhoria.
+- **Conhecimento de domínio importa mais que o tamanho do modelo**: o GPT-4.1 com conhecimento detalhado de surf no prompt se sai melhor que o GPT-4 com instruções genéricas.
+
+---
+
+O SwellGuide começou como um projeto pessoal para resolver um problema que eu mesmo tinha: entender quando e onde surfar. Hoje ele entrega boletins diários para mais de 50 surfistas por Florianópolis.
+
+A stack é simples de propósito: duas Lambdas, uma fila, um LLM, um serviço de e-mail. Sem Kubernetes. Sem malha de microsserviços. Sem streaming em tempo real. Só a arquitetura necessária para resolver o problema com confiabilidade.
+
+Se você está construindo algo parecido, meu conselho: comece com a arquitetura mais simples que possa funcionar, coloque no ar e deixe a produção ensinar o que precisa mudar.

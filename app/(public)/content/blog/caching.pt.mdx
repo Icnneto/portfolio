@@ -1,0 +1,166 @@
+---
+title: "Fundamentos de System Design: Cache"
+date: "10 de fevereiro de 2026"
+readTime: "5-6 min de leitura"
+excerpt: "Uma abordagem simples sobre cache em System Design"
+tags: ["basics", "system design", "cache", "programming"]
+---
+
+Olá, e obrigado por estar aqui de novo!
+Estou começando uma série de posts sobre Fundamentos de System Design! A ideia é escrever sobre temas diferentes que, juntos, nos deem uma visão mais ampla de system design.
+
+Vale dizer que esta série é bastante inspirada nos [artigos de Core Concepts do Hello Interview](https://www.hellointerview.com/learn/system-design/core-concepts/caching)! Dê uma olhada, vale muito a pena!
+
+Neste post (#1), o foco é cache! Espero que, ao final, você consiga falar sobre o que é cache, onde colocá-lo, as arquiteturas existentes, as políticas de remoção e os problemas e desafios mais comuns.
+
+## O que é cache
+
+Em essência, cache é a prática de guardar cópias de dados num local de armazenamento temporário, para que as próximas requisições por aquele dado sejam atendidas mais rápido.
+
+De forma mais técnica, um cache costuma ser uma camada de armazenamento de alta velocidade (como a memória RAM) que fica na frente de uma camada de armazenamento permanente e mais lenta (como um disco rígido ou um banco de dados SQL).
+
+Por exemplo, o Domain Name System (DNS) guarda registros DNS em cache para acelerar as consultas, as **Content Delivery Networks (CDN)** usam cache para reduzir a latência, os navegadores guardam em cache arquivos HTML, imagens e JavaScript para carregar sites mais rápido, e a lista não para….
+
+## Onde colocar um cache
+
+Dá para colocar um cache em quase todas as camadas de um sistema. Mas, para simplificar, aqui estão as quatro mais comuns:
+
+### Cache externo
+
+O cache externo vive numa camada própria, independente da aplicação e do banco de dados. Para essa abordagem, tecnologias como Redis e Memcached são bem conhecidas!
+
+Um dos principais benefícios do cache externo é a **escalabilidade**. Como o cache é compartilhado entre todos os servidores da aplicação, qualquer servidor pode ler ou escrever nele. Por exemplo, se o Servidor A guarda em cache o perfil de um usuário, o Servidor B consegue acessá-lo na hora, sem consultar o banco de novo.
+
+### Cache em processo
+
+O cache fica guardado diretamente na memória da aplicação, no servidor que está rodando o código.
+
+Como não há tempo de rede para buscar a informação em cache, essa abordagem é extremamente rápida! Ela faz sentido quando você precisa guardar pedaços pequenos de dados que mudam pouco (valores de configuração, feature flags ou valores pré-calculados).
+
+Por outro lado, cada instância da sua aplicação pode ter versões diferentes do dado (inconsistência).
+
+### CDN (Content Delivery Network)
+
+Uma rede de servidores distribuídos geograficamente que guarda em cache os arquivos estáticos — como mencionei antes — como imagens, CSS e vídeos, mais perto do usuário.
+
+Isso quer dizer que, se o seu usuário está em Londres, ele pode baixar uma cópia do seu conteúdo de um servidor em Londres, em vez do servidor principal em São Paulo. Essa abordagem melhora o desempenho, porque reduz a latência de cada requisição.
+
+### Cache no cliente
+
+O cache no cliente guarda os dados diretamente no dispositivo do usuário, geralmente no navegador (localStorage, cache HTTP) ou num app mobile, usando a memória local ou o armazenamento do dispositivo.
+
+Como o dado já está na máquina do usuário, a latência de rede é zero, o que dá um carregamento instantâneo.
+
+## Arquiteturas de cache
+
+Ao desenhar um sistema, é muito importante entender e decidir como a aplicação, o cache e o banco de dados interagem. Essa decisão afeta o desempenho, a consistência e a complexidade.
+
+### Cache-Aside
+
+Este é o padrão mais comum. A aplicação é responsável por coordenar os dados.
+
+1. A aplicação consulta o cache
+2. Se for **Hit:** retorna o dado ("hit" quer dizer que o dado estava na camada de cache)
+3. Se for **Miss**: a aplicação lê do banco
+   - A aplicação atualiza o cache
+   - Retorna o dado
+
+Essa arquitetura é **resiliente** — se o cache falhar, o sistema continua funcionando. Uma observação: a primeira requisição pode ser mais lenta, porque o dado ainda não está no cache.
+
+### Write-Through
+
+A aplicação escreve o dado **apenas** no cache, e então o cache escreve no banco de dados de forma **síncrona** antes de responder à aplicação.
+
+1. A aplicação escreve no cache.
+2. O cache escreve no banco de dados.
+3. A escrita só é confirmada quando as duas terminam.
+
+Embora aqui a gente busque mais consistência, tentando manter o cache sincronizado com o banco, expomos a aplicação ao problema da escrita dupla. Se a atualização do cache der certo mas a escrita no banco falhar, o sistema pode ficar inconsistente.
+
+Vale notar também que as escritas ficam mais lentas (a aplicação precisa esperar pelas duas) e que podemos acabar guardando em cache dados que nunca serão lidos (desperdício de memória).
+
+### Write-Behind (Write-Back)
+
+Ao contrário da abordagem anterior, em que as escritas são síncronas, o Write-Behind usa uma lógica **assíncrona**. A aplicação escreve no cache e, depois, o cache agrupa e grava os dados no banco de forma assíncrona, em segundo plano.
+
+1. A aplicação escreve no cache e recebe a confirmação na hora.
+2. O cache atualiza o banco em segundo plano.
+
+Essa arquitetura tem um desempenho de escrita **extremamente rápido** e pode reduzir a carga no banco (já que consegue juntar várias escritas numa só).
+
+Por outro lado, ela traz um **alto risco de perda de dados**. Se o cache cair antes de atualizar o banco, aquele dado se perdeu!
+
+### Read-Through
+
+Parecido com o Cache-Aside, mas a aplicação trata o cache como o armazenamento principal. É o próprio cache, e não a aplicação, que busca no banco quando o dado não está lá.
+
+1. A aplicação lê do cache
+2. Se der **miss** no cache:
+   - Busca no banco de dados
+   - Guarda o dado em cache
+   - Retorna a informação para a aplicação
+
+## Políticas de remoção do cache
+
+Um cache tem espaço limitado. Quando ele enche, é preciso decidir o que apagar para abrir espaço para dados novos. Essa decisão se chama "remoção" (eviction).
+
+### Least Recently Used (LRU)
+
+**"Se você não usa há um tempo, provavelmente não vai precisar tão cedo."**
+O sistema remove o item que foi acessado há mais tempo. É o padrão da indústria para a maioria das aplicações web.
+
+### Least Frequently Used (LFU)
+
+**"Se você usa pouco, livre-se disso."**
+
+Nesta política, o sistema conta quantas vezes cada item é acessado. Os itens com a menor contagem são removidos. Não é simples de implementar; alguns sistemas usam um LFU aproximado para evitar o alto custo de uma contagem precisa.
+
+### First-In-First-Out (FIFO)
+
+**"Os itens mais antigos saem primeiro."**
+
+Parecido com a estrutura de dados fila. O item que está há mais tempo no cache é removido, não importa com que frequência ele é acessado.
+
+### Time-To-Live (TTL)
+
+**"Este dado se autodestrói em x minutos."**
+
+Os itens são apagados automaticamente depois de um período definido, independentemente do espaço. Isso é essencial para dados que mudam com frequência, como cotações de ações ou feeds de notícias.
+
+## Problemas e desafios comuns
+
+Cache é uma estratégia muito útil e importante, mas implementá-lo pode trazer algumas complexidades. Para entender os trade-offs, vamos ver alguns casos de borda.
+
+### Cache Stampede (Thundering Herd)
+
+Imagine que uma chave de cache popular (como "homepage_news") expira. De repente, 10.000 usuários pedem aquele dado ao mesmo tempo. Todas as 10.000 requisições recebem um "Cache Miss" e batem no banco de dados no mesmo milissegundo, podendo derrubá-lo.
+
+Formas de lidar com isso:
+
+1. **Request Coalescing (Singleflight):** o sistema percebe que vários usuários estão pedindo o mesmo dado. Ele deixa só a *primeira* requisição ir ao banco. As outras 9.999 ficam esperando. Quando a primeira volta, o resultado é compartilhado com todo mundo
+2. **Cache Warming:** você roda um script para popular o cache antes de ele expirar ou antes de o tráfego subir, garantindo que os usuários nunca encontrem um cache "frio".
+3. **Expiração antecipada probabilística**: se uma chave expira em 60s, você pode buscá-la de novo aleatoriamente em 55s ou 58s, para que a atualização aconteça antes de o stampede começar.
+
+### Consistência do cache
+
+Manter o cache e o banco de dados **em sincronia** é um problema comum e muito discutido em engenharia de software. Isso acontece porque a maioria dos sistemas lê do cache, mas escreve primeiro no banco. Por exemplo, depois de uma atualização de perfil gravada no banco, a aplicação ainda pode estar servindo a versão anterior do perfil para outros usuários, porque o cache ainda não foi atualizado.
+
+Formas de lidar com isso:
+
+1. **TTLs curtos**: mesmo que o dado esteja desatualizado, um Time-To-Live curto (por exemplo, 5 segundos) garante que o dado ruim não dure muito.
+2. **Invalidação explícita**: quando a aplicação escreve no banco, ela precisa mandar na mesma hora um comando para APAGAR ou ATUALIZAR aquela chave específica no cache.
+
+### Hot Keys
+
+Às vezes, uma única chave é acessada com tanta frequência (o perfil de uma celebridade no Twitter durante um escândalo) que um único nó do cache não dá conta do tráfego, criando um gargalo enquanto os outros nós ficam ociosos.
+
+1. **Cache local (L1 Cache)**: adicione um cache pequeno em memória diretamente nos servidores da aplicação. Mesmo que ele guarde o dado por apenas 1 segundo, isso economiza milhares de idas ao cache principal.
+2. **Replicação de chaves**: crie várias cópias da chave quente (por exemplo, key_1, key_2, key_3) e distribua entre nós diferentes. Encaminhe as requisições dos usuários aleatoriamente para uma dessas cópias.
+
+## Para fechar
+
+Cache é um daqueles conceitos que parecem simples na superfície, mas mostram rapidamente sua profundidade quando você começa a tomar decisões de verdade: onde colocá-lo, qual arquitetura usar, como lidar com a remoção e com casos de borda como stampedes ou falhas de consistência.
+
+A principal lição é que não existe solução única. Toda decisão de cache envolve trade-offs entre velocidade, consistência, complexidade e resiliência. Entender esses trade-offs é o que faz a diferença ao desenhar sistemas em escala.
+
+Se quiser se aprofundar, recomendo muito o [artigo sobre Caching do Hello Interview](https://www.hellointerview.com/learn/system-design/core-concepts/caching) que inspirou este post. Fique de olho no próximo da série Fundamentos de System Design!

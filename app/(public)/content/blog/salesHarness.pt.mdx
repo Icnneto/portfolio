@@ -1,0 +1,127 @@
+---
+title: "Agentes São a Parte Fácil: O Harness por Trás de um Time de Vendas de IA"
+date: "7 de novembro de 2026"
+readTime: "8-9 min de leitura"
+excerpt: "Agentes, memória, ciclos e decisões: o sistema em volta do modelo que permite a uma IA vender com responsabilidade"
+tags: ["architecture", "ai", "agents", "governance", "solutions"]
+---
+
+Na RBBT construímos uma IA que vende pela conversa. Ela atende clientes de marcas de e-commerce no WhatsApp e no chat do site, recomenda produtos, monta carrinhos, envia links de checkout e cuida das dúvidas de pós-venda. Quando eu explico isso, as pessoas costumam perguntar sobre o prompt.
+
+O prompt é a menor parte do sistema. Um modelo de ponta já sabe conversar. O que ele não sabe é:
+
+- para qual marca está falando;
+- o que esse cliente comprou no mês passado;
+- quais ações ele pode tomar;
+- quando parar e chamar uma pessoa;
+- quem responde pelo resultado.
+
+Tudo o que fornece essas respostas é o que eu chamo de **harness**: a estrutura em volta do modelo.
+
+Este post é sobre esse harness: seus agentes, sua memória, os ciclos em que ele roda, a forma como ele toma decisões e o que a produção nos ensinou. Não é uma receita. É o raciocínio por trás do formato.
+
+## Limites antes dos agentes
+
+A primeira decisão foi desenhar o domínio antes de desenhar qualquer agente. Uma conversa de vendas não é um trabalho só. Ela passa por várias áreas, cada uma com seu próprio vocabulário e seus próprios modos de falha:
+
+- descobrir quem está falando;
+- entender o que a pessoa quer;
+- recomendar;
+- fechar um pedido;
+- responder dúvidas sobre um pedido que já existe.
+
+Cada uma delas virou uma **capacidade delimitada**, com linguagem, dados e ferramentas próprios, e cada agente vive dentro de exatamente uma delas. Essa é a diferença entre um agente nativo e um chatbot com muitas ferramentas: o limite vem primeiro, e o agente herda dele o seu escopo.
+
+[![Anatomia do harness](/sales-harness__anatomy.png)](/sales-harness__anatomy.png)
+
+Algumas consequências desse formato:
+
+**Um dono por turno.** A orquestração lê cada mensagem que chega e entrega o turno a exatamente um agente. Nunca é um comitê que responde ao cliente.
+
+**Privilégio mínimo.** O agente de vendas monta carrinhos e o agente de pós-venda consulta pedidos, e nenhum carrega as ferramentas do outro. Se um deles errar, o estrago fica dentro da sua própria capacidade.
+
+**Fornecedores ficam do lado de fora.** Plataformas de commerce, canais de mensagem e até o modelo de linguagem ficam atrás de camadas anticorrupção. A mesma lógica de venda roda na Shopify e na Nuvemshop, e trocar um fornecedor significa trocar um adaptador, não reescrever o núcleo.
+
+**Um humano é um caminho de primeira classe.** Quando o sistema está em dúvida, travado ou recebe um pedido sensível, ele passa a conversa para o time da marca, com contexto. Escalar é o padrão seguro, não um estado de erro.
+
+## Memória: fatos primeiro, contexto por último
+
+O jeito ingênuo de lidar com memória é enfiar o histórico do chat no prompt. Isso quebra rápido:
+- é caro;
+- vaza dados de um propósito para outro;
+- o modelo trata um boato e um fato do mesmo jeito.
+
+Nós tratamos a memória como um pipeline que começa nos fatos. Pedidos, os produtos que o cliente olhou, as tags das conversas e o catálogo da marca são registrados no momento em que acontecem. Jobs em segundo plano transformam esses fatos em **projeções**:
+- o que a pessoa comprou, e em quais variações;
+- o que ela viu e não levou;
+- como essa marca chama seus tamanhos e cores.
+
+Só no último passo, a cada turno, um compositor monta um bloco curto de contexto para o agente dono do turno.
+
+[![Memória: entram fatos, sai só o que cada agente precisa saber](/sales-harness__memory.png)](/sales-harness__memory.png)
+
+É nesse último passo que mora a regra mais importante: **cada agente sabe só o que precisa**.
+- O agente de vendas vê o histórico de que precisa para recomendar bem.
+- O agente de pós-venda vê os pedidos e mais nada.
+- Uma mensagem de follow-up recebe só o tom da relação.
+
+Isso é garantido no código, não pedido num prompt.
+
+Dois detalhes de que me orgulho:
+
+**Linguagem também é memória.** Cada marca chama as coisas de um jeito. O sistema aprende o vocabulário de cada marca a partir do próprio catálogo e fala do mesmo jeito, em vez de impor uma taxonomia genérica ao cliente.
+
+**Privacidade é um insumo de design.** A LGPD moldou o pipeline desde o início, e o DPO revisa e ratifica as decisões sobre dados pessoais antes de irem ao ar. Por exemplo, para falar de um pedido, o cliente prova que ele é seu com o e-mail e o número do pedido. O agente nunca "confirma" um pedido repetindo a data ou o valor. Esse atalho seria conveniente: nós o construímos, medimos e deixamos desligado de propósito.
+
+## Quatro relógios
+
+Um harness não é só estrutura; é também tempo. O nosso roda em quatro relógios. Cada um é mais lento que o anterior, e cada um protege os mais rápidos.
+
+[![Os quatro relógios](/sales-harness__clocks.png)](/sales-harness__clocks.png)
+
+**O turno (segundos).** Um turno tem um orçamento de latência. Se o cliente manda outra mensagem no meio do turno, o turno em andamento pode ser interrompido, em vez de responder a uma pergunta que já ficou para trás. O time da marca pode assumir uma conversa a qualquer momento.
+
+**Segundo plano (minutos a horas).** As projeções são reconstruídas, os catálogos ganham snapshots e os follow-ups são agendados. Tudo o que um turno lê é preparado com antecedência, para que o turno em si continue rápido e previsível.
+
+**Aprendizado (dias).** Avaliação é infraestrutura, não uma fase.
+- Fluxos reais são reexecutados contra as novas versões.
+- Avaliações ao vivo rodam com configurações fixadas.
+- Acompanhamos a precisão do roteamento, a qualidade das recomendações e a conversão.
+- Nada entra sem passar pelo portão completo: suítes de teste herméticas, guardas de arquitetura e checagens de limites.
+- Depois de um deploy, uma checagem da primeira hora compara os sinais de produção com o que esperávamos.
+
+**Vida (semanas).** O relógio mais lento impede que o design e o código se afastem. Os contratos entre capacidades são congelados antes que alguém construa em cima deles. Quando a realidade discorda, o contrato é emendado e ratificado primeiro, e o código vem depois. Uma guarda quebra o build quando o design diz uma coisa e o código faz outra.
+
+O princípio por trás dos quatro: **observabilidade vem antes da autonomia**. Cada passo de autonomia é conquistado com medições, e as medições continuam rodando depois que ele é conquistado.
+
+## Decisões são artefatos
+
+A parte do harness que mais surpreende as pessoas é o quanto dele está escrito. Só o Sales tem mais de cem registros de decisão, além de documentos de requisitos de produto e contratos versionados com um registro de ratificações. Cada decisão tem um dono, uma data e um motivo.
+
+[![O ciclo de decisões](/sales-harness__decisions.png)](/sales-harness__decisions.png)
+
+Três ideias fazem isso funcionar:
+
+**Agentes propõem, pessoas ratificam.** Cada capacidade tem um dono humano nomeado, o Context Owner, que ratifica as decisões de produto; o DPO ratifica tudo o que toca dados pessoais. Os agentes são classificados por nível de autonomia (somente leitura, sugere, age com revisão, autônomo) e só mudam de nível com evidência.
+
+**Decisões podem ir ao ar adormecidas.** A engenharia costuma andar mais rápido que a ratificação. Em vez de travar uma pela outra, a capacidade vai ao ar atrás de uma flag que segura a decisão até ela ser ratificada. O código fica pronto, e a decisão não é tomada às pressas.
+
+**Testes prendem as decisões.** Depois que uma decisão é ratificada, um teste a codifica. Mudar o comportamento depois significa mudar o teste de propósito, com a nova decisão registrada ao lado.
+
+Quando alguém pergunta "por que funciona assim?", a resposta é um link, não uma reunião. É isso que permite a um time pequeno mudar um sistema complexo sem redecidir tudo a cada trimestre.
+
+## O que a produção nos ensinou
+
+A maior parte do harness existe porque algo em produção reagiu. Estes são os achados, os gargalos e os números que o moldaram.
+
+**A latência percebida pesa mais que a medida.** Nós mandávamos um rápido "só um momento" enquanto a resposta de verdade era preparada. Em produção, isso virou a parte mais visível da espera. Na mediana, o aviso chegava por volta de dez segundos depois e vinha seguido de mais 26 segundos de silêncio, e três em cada quatro usavam a mesma fórmula. Trocamos por uma única linha concreta, escrita pelo agente dono da resposta e enviada só quando ele está prestes a chamar uma ferramenta lenta. Toda mensagem que sai agora é marcada pelo que ela é (ponte, resposta final, escalonamento), para que a latência seja medida do lado do cliente, não do servidor.
+
+**Clientes digitam em rajadas.** Três mensagens curtas seguidas costumam ser uma pergunta só. Uma janela fixa ancorada na primeira mensagem ou cortava as pessoas no meio, ou deixava esperando quem era rápido. Agora o turno começa quando o cliente para de digitar, com um teto rígido para que ninguém espere para sempre.
+
+**Toda mensagem tem um preço.** Desde que o WhatsApp passou a cobrar as mensagens de atendimento uma a uma, uma resposta quebrada em vários balões custa por balão. Em produção, as respostas tinham em média 2,8 balões, com 5 no percentil 95. Responder primeiro e juntar o resto levou nosso conjunto de avaliação a um balão por resposta, 64% menos mensagens, com todos os casos ainda conformes e nada cortado do conteúdo.
+
+**A falha precisa de um chão.** Cerca de 0,8% dos turnos não conseguem gerar uma resposta, muitas vezes porque quem falhou foi o próprio provedor do modelo. O cliente nunca fica no silêncio: uma mensagem reserva, escrita sem o modelo, cumpre a promessa, e o time da marca é alertado.
+
+**Métricas também mentem.** Uma vez, um medidor de idade da fila acusou um job de follow-up esperando quase oito horas numa fila ociosa, e um alerta crítico ficou disparando por horas. A biblioteca de filas zera o atraso de um job agendado quando ele fica pronto, e o medidor nunca era zerado. Agora o amostrador mantém o próprio relógio, marca zero quando nada está esperando, e o alerta só dispara com trabalho de fato esperando. Observabilidade antes da autonomia vale para os painéis também.
+
+Nenhuma dessas correções foi um prompt melhor. Cada uma foi uma mudança no harness: um novo limite, um novo relógio, uma decisão escrita e presa por um teste. É aí que o desempenho do produto realmente mora.

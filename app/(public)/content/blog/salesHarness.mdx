@@ -1,7 +1,7 @@
 ---
 title: "Agents Are the Easy Part: The Harness Behind an AI Sales Team"
 date: "November 7, 2026"
-readTime: "7-8 min read"
+readTime: "8-9 min read"
 excerpt: "Agents, memory, cycles and decisions: the system around the model that lets an AI sell responsibly"
 tags: ["architecture", "ai", "agents", "governance", "solutions"]
 ---
@@ -18,7 +18,7 @@ The prompt is the smallest part of the system. A frontier model already knows ho
 
 Everything that supplies those answers is what I call the **harness**: the structure around the model.
 
-This post is about that harness: its agents, its memory, the cycles it runs on and the way it makes decisions. It is not a recipe. It is the reasoning behind the shape.
+This post is about that harness: its agents, its memory, the cycles it runs on, the way it makes decisions, and what production taught us. It is not a recipe. It is the reasoning behind the shape.
 
 ## Boundaries before agents
 
@@ -110,29 +110,25 @@ Three ideas make this work:
 
 When someone asks "why does it work like this?", the answer is a link, not a meeting. That is what lets a small team change a complex system without re-deciding it every quarter.
 
-## The builders are agents too
+## What production taught us
 
-The harness is built the same way the product works:
+Most of the harness exists because something in production pushed back. These are the findings, bottlenecks and numbers that shaped it.
 
-1. An architect agent turns my intent into a requirements document and a kickoff.
-2. Executor agents implement it in small slices, tests first: a failing test, then the change that makes it pass.
-3. They replay every gate locally and report evidence on the pull request: test output, measurements, before-and-after screenshots.
-4. I review, ratify, merge and deploy. Most of that conversation happens in a WhatsApp group.
+**Perceived latency beats measured latency.** We used to send a quick "just a moment" while the real answer was being prepared. In production it became the most visible part of the wait. At the median, the acknowledgment arrived about ten seconds in and was followed by another 26 seconds of silence, and three out of four used the same formula. We replaced it with one grounded line, written by the agent that owns the answer and sent only when it is about to call a slow tool. Every outgoing message is now tagged by what it is (bridge, final answer, escalation), so latency is measured from the customer's side, not the server's.
 
-The same principles hold for the builders:
-- An executor works only on its own branch.
-- Kickoffs and reports live next to the code.
-- Every claim comes with proof.
-- The agents keep a memory of operational lessons (what broke, which rule exists and why), so the team doesn't pay for the same mistake twice.
+**Customers type in bursts.** Three short messages in a row are usually one question. A fixed window anchored on the first message either cut people off or kept quick customers waiting. Now the turn starts when the customer stops typing, with a hard ceiling so nobody waits forever.
 
-My job moved from writing most of the code to owning the context: deciding what matters, ratifying, and saying no.
+**Every message has a price.** Since WhatsApp started billing service messages one by one, a reply split into bubbles costs per bubble. Production replies averaged 2.8 bubbles, with 5 at the 95th percentile. Answering first and merging the rest brought our evaluation set to one bubble per reply, 64% fewer messages, with every case still conformant and nothing cut from the content.
 
-## What I'd tell another CTO
+**The model is a latency decision; the context is a cost decision.** We ran an A/B on a copy of a production brand. Moving the seller from Sonnet 5 to Opus 5.5:
+- cut median response time from 6.4 to 5.5 seconds, and the 95th percentile from 12.2 to 9.0;
+- produced fewer tokens;
+- more importantly, made the seller say "I don't have that information" where the other model invented confident negatives.
 
-If you are putting agents in front of customers, three things matter more than the model you choose:
+Growing the brand knowledge kept in the prompt from 24k to 96k tokens kept recall at 15 out of 15 and added less than half a second. So the ceiling is cost and quota, not quality. With prompt caching, a warm call is mostly cached reads, so the larger model costs about 1.5 times as much, not twice.
 
-1. **Put boundaries before agents.** Models are interchangeable; your domain model is not.
-2. **Make autonomy earn its keep.** Measure first, then widen what the agent may do, and keep measuring.
-3. **Make decisions addressable.** If you can't point to where a decision lives, you will make it again, probably differently.
+**Failure needs a floor.** About 0.8% of turns fail to produce an answer, often because the model provider is the thing that failed. The customer never gets silence: a fallback written without the model keeps the promise, and the brand team is alerted.
 
-The agents are the visible part. The harness is what lets them sell, and what lets the business sleep at night.
+**Metrics can lie too.** Once, a queue-age gauge reported a follow-up job waiting almost eight hours on an idle lane, and a critical alert kept firing for hours. The queue library resets a delayed job's delay when the job becomes ready, and the gauge never cleared. Now the sampler keeps its own clock, reads zero when nothing waits, and the alert needs real waiting work. Observability before autonomy applies to the dashboards too.
+
+None of these fixes was a better prompt. Each one was a change to the harness: a new boundary, a new clock, a decision written down and pinned by a test. That is where the product's performance actually lives.

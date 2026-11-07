@@ -11,17 +11,13 @@ export const LOCALE_KEY = 'lang'
 export type Localized<T = string> = Record<Locale, T>
 
 /**
- * Runs before the first paint: the saved choice, else the browser's language (Portuguese → pt-BR, anything else → en).
- * Kept in sync with LOCALE_KEY and HTML_LANG.
+ * Runs before the first paint: English unless the visitor picked Portuguese with the toggle. The browser's language is
+ * not consulted. Kept in sync with LOCALE_KEY and HTML_LANG.
  */
 export const LOCALE_BOOT_SCRIPT = `
   ;(function() {
     try {
-      var saved = localStorage.getItem('lang');
-      var locale = saved === 'pt' || saved === 'en'
-        ? saved
-        : ((navigator.language || '').toLowerCase().indexOf('pt') === 0 ? 'pt' : 'en');
-      document.documentElement.lang = locale === 'pt' ? 'pt-BR' : 'en';
+      document.documentElement.lang = localStorage.getItem('lang') === 'pt' ? 'pt-BR' : 'en';
     } catch (e) {}
   })()
 `

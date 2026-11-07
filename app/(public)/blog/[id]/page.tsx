@@ -13,6 +13,10 @@ interface BlogPostPageProps {
 
 async function getBlogPost(id: string) {
   const blogDir = path.join(process.cwd(), 'app', '(public)', 'content', 'blog');
+  // A Portuguese edition is never a post of its own: /blog/<id>.pt is not found.
+  if (isTranslation(`${id}.mdx`)) {
+    return null;
+  }
   const filePath = path.join(blogDir, `${id}.mdx`);
 
   // Check if file exists

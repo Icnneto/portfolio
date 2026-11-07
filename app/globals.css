@@ -504,48 +504,75 @@ html:not([lang="pt-BR"]) .l10n[data-locale="pt"] {
   display: none;
 }
 
-.portfolio-nav .lang-toggle {
+.portfolio-nav .lang-switch {
   position: absolute;
   right: 0;
+  top: -3px;
 }
 
-.lang-toggle {
-  display: flex;
+/* The pill switch: two equal halves, the thumb under the language in use. */
+.lang-switch {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-dm-sans), sans-serif;
-  font-size: 0.85rem;
-}
-
-.lang-toggle-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.lang-toggle-separator {
-  color: var(--link-separator);
-}
-
-.lang-toggle-option {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
+  padding: 3px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: transparent;
   cursor: pointer;
+  font-family: var(--font-dm-sans), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s ease;
+}
+
+.lang-switch:hover {
+  border-color: var(--text-muted);
+}
+
+.lang-switch:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+.lang-switch-label {
+  position: relative;
+  z-index: 1;
+  min-width: 30px;
+  padding: 3px 8px;
+  text-align: center;
+  line-height: 1;
+  color: var(--text-muted);
   transition: color 0.2s ease;
 }
 
-.lang-toggle-option:hover {
+.lang-switch-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 999px;
+  background: var(--border-color);
+  transition: transform 0.2s ease;
+}
+
+html[lang="pt-BR"] .lang-switch-thumb {
+  transform: translateX(100%);
+}
+
+html:not([lang="pt-BR"]) .lang-switch-label[data-label="en"],
+html[lang="pt-BR"] .lang-switch-label[data-label="pt"] {
   color: var(--text-primary);
 }
 
-.lang-toggle-option.active {
-  color: var(--text-primary);
-  font-weight: 700;
+@media (prefers-reduced-motion: reduce) {
+  .lang-switch-thumb,
+  .lang-switch-label {
+    transition: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -556,8 +583,9 @@ html:not([lang="pt-BR"]) .l10n[data-locale="pt"] {
     row-gap: 12px;
   }
 
-  .portfolio-nav .lang-toggle {
-    position: static;
+  .portfolio-nav .lang-switch {
+    position: relative;
+    top: 0;
     order: 99;
   }
 }

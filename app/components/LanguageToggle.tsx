@@ -3,41 +3,34 @@
 import { useEffect, useState } from 'react'
 import { HTML_LANG, LOCALE_KEY, type Locale } from '../lib/locale'
 
-const LABEL: Record<Locale, string> = { en: 'EN', pt: 'PT' }
-
+/**
+ * A pill switch: EN on the left, PT on the right, the thumb under the language in use. Where the thumb sits is CSS,
+ * read from the <html lang> the boot script set before paint (globals.css, "Language"), so the switch never flashes
+ * the wrong side while the page hydrates.
+ */
 export function LanguageToggle() {
-  const [locale, setLocale] = useState<Locale>('en')
+  const [isPt, setIsPt] = useState(false)
 
   useEffect(() => {
-    setLocale(document.documentElement.lang === HTML_LANG.pt ? 'pt' : 'en')
+    setIsPt(document.documentElement.lang === HTML_LANG.pt)
   }, [])
 
-  const choose = (next: Locale) => {
-    setLocale(next)
+  const toggle = () => {
+    const next: Locale = document.documentElement.lang === HTML_LANG.pt ? 'en' : 'pt'
     document.documentElement.lang = HTML_LANG[next]
     try {
       localStorage.setItem(LOCALE_KEY, next)
     } catch {
       // No storage (private mode): the choice lasts for this page only.
     }
+    setIsPt(next === 'pt')
   }
 
   return (
-    <div className="lang-toggle" role="group" aria-label="Language / Idioma">
-      {(['en', 'pt'] as const).map((option, i) => (
-        <span key={option} className="lang-toggle-item">
-          {i > 0 ? <span className="lang-toggle-separator" aria-hidden="true">·</span> : null}
-          <button
-            type="button"
-            className={`lang-toggle-option ${locale === option ? 'active' : ''}`}
-            aria-pressed={locale === option}
-            lang={HTML_LANG[option]}
-            onClick={() => choose(option)}
-          >
-            {LABEL[option]}
-          </button>
-        </span>
-      ))}
-    </div>
+    <button type="button" role="switch" aria-checked={isPt} aria-label="Português" className="lang-switch" onClick={toggle}>
+      <span className="lang-switch-thumb" aria-hidden="true" />
+      <span className="lang-switch-label" data-label="en" aria-hidden="true">EN</span>
+      <span className="lang-switch-label" data-label="pt" aria-hidden="true">PT</span>
+    </button>
   )
 }

@@ -1,5 +1,6 @@
 import { Navigation } from './components/Navigation'
 import { Stats } from './components/Stats'
+import { T } from './components/Localized'
 
 function formatLastUpdated(iso: string): string {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -20,14 +21,28 @@ function formatLastUpdated(iso: string): string {
   return `${part('month')} ${day}${suffix}, ${part('year')}`
 }
 
-const lastUpdated = formatLastUpdated(process.env.LAST_UPDATED ?? new Date().toISOString())
+/** "7 de novembro de 2026", the way a Brazilian reader writes a date. */
+function formatLastUpdatedPt(iso: string): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(iso))
+}
+
+const lastUpdatedIso = process.env.LAST_UPDATED ?? new Date().toISOString()
+const lastUpdated = formatLastUpdated(lastUpdatedIso)
+const lastUpdatedPt = formatLastUpdatedPt(lastUpdatedIso)
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <div className="portfolio-container">
       <header className="portfolio-header">
         <h1 className="portfolio-title">Israel Nunes</h1>
-        <p className="portfolio-date">Last updated: {lastUpdated}</p>
+        <p className="portfolio-date">
+          <T en={`Last updated: ${lastUpdated}`} pt={`Atualizado em ${lastUpdatedPt}`} />
+        </p>
       </header>
 
       <Navigation />

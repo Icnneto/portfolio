@@ -3,12 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ThemeToggle } from './ThemeToggle'
+import { LanguageToggle } from './LanguageToggle'
+import { T } from './Localized'
 
 const links = [
-  { href: '/', label: 'home' },
-  { href: '/projects', label: 'projects' },
-  { href: '/blog', label: 'blog' },
-  { href: '/contact', label: 'contact' },
+  { href: '/', en: 'home', pt: 'início' },
+  { href: '/projects', en: 'projects', pt: 'projetos' },
+  { href: '/blog', en: 'blog', pt: 'blog' },
+  { href: '/contact', en: 'contact', pt: 'contato' },
 ]
 
 export function Navigation() {
@@ -23,9 +25,10 @@ export function Navigation() {
           href={link.href}
           className={`nav-link ${pathname === link.href ? 'active' : ''}`}
         >
-          {link.label}
+          <T en={link.en} pt={link.pt} />
         </Link>
       ))}
+      <LanguageToggle />
     </nav>
   )
 }

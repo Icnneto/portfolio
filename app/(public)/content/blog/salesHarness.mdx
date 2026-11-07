@@ -120,13 +120,6 @@ Most of the harness exists because something in production pushed back. These ar
 
 **Every message has a price.** Since WhatsApp started billing service messages one by one, a reply split into bubbles costs per bubble. Production replies averaged 2.8 bubbles, with 5 at the 95th percentile. Answering first and merging the rest brought our evaluation set to one bubble per reply, 64% fewer messages, with every case still conformant and nothing cut from the content.
 
-**The model is a latency decision; the context is a cost decision.** We ran an A/B on a copy of a production brand. Moving the seller from Sonnet 5 to Opus 5.5:
-- cut median response time from 6.4 to 5.5 seconds, and the 95th percentile from 12.2 to 9.0;
-- produced fewer tokens;
-- more importantly, made the seller say "I don't have that information" where the other model invented confident negatives.
-
-Growing the brand knowledge kept in the prompt from 24k to 96k tokens kept recall at 15 out of 15 and added less than half a second. So the ceiling is cost and quota, not quality. With prompt caching, a warm call is mostly cached reads, so the larger model costs about 1.5 times as much, not twice.
-
 **Failure needs a floor.** About 0.8% of turns fail to produce an answer, often because the model provider is the thing that failed. The customer never gets silence: a fallback written without the model keeps the promise, and the brand team is alerted.
 
 **Metrics can lie too.** Once, a queue-age gauge reported a follow-up job waiting almost eight hours on an idle lane, and a critical alert kept firing for hours. The queue library resets a delayed job's delay when the job becomes ready, and the gauge never cleared. Now the sampler keeps its own clock, reads zero when nothing waits, and the alert needs real waiting work. Observability before autonomy applies to the dashboards too.

@@ -1,0 +1,100 @@
+---
+title: "Estruturas de Dados"
+date: "21 de novembro de 2025"
+readTime: "10 min de leitura"
+excerpt: "Entendendo as estruturas de dados fundamentais: arrays, listas ligadas, pilhas, árvores, grafos e tabelas hash"
+tags: ["data structures", "programming"]
+---
+
+Em programação, estruturas de dados são a forma como os dados são **organizados, armazenados e manipulados na memória de um computador**. Elas são essenciais para guardar, recuperar e manipular dados com eficiência, e oferecem um meio de representar as relações entre os elementos.
+
+## Arrays
+
+**Arrays servem para guardar vários valores do mesmo tipo** sob um único nome de variável, dispostos em posições contíguas de memória. **Cada elemento do array é acessado pelo seu índice**, que **representa a sua posição** dentro do array.
+
+Eles permitem guardar e recuperar elementos com eficiência e são muito usados em várias linguagens de programação para uma grande variedade de aplicações, como guardar listas de itens, gerenciar conjuntos de dados e representar estruturas multidimensionais.
+
+### Tipos de arrays
+
+1. **Arrays unidimensionais** - também chamados de vetores ou listas, são arrays com uma única linha ou coluna. São a forma mais simples de array e costumam ser usados para guardar uma coleção de valores do mesmo tipo, como inteiros ou caracteres
+
+2. **Arrays bidimensionais** - por outro lado, são arrays com duas dimensões, normalmente representadas como linhas e colunas. Eles são organizados como uma grade, o que permite guardar dados em linhas e colunas. Arrays bidimensionais são muito usados para representar matrizes, tabelas ou grades de valores, como uma planilha ou um tabuleiro de jogo
+
+![Array unidimensional](/one-dimensional_array.svg)
+*Array unidimensional*
+
+![Array bidimensional](/two-dimensional_array.svg)
+*Array bidimensional*
+
+É importante lembrar que tudo isso é apenas uma demonstração superficial do que são arrays.
+
+Se quiser complementar o que leu, sugiro assistir a este vídeo:
+
+[Arrays Explained - YouTube](https://www.youtube.com/embed/QJNwK2uJyGs?si=uVKf5GsiuYY9Byt1)
+
+## Listas ligadas
+
+Uma estrutura de dados linear formada por uma **sequência de elementos, chamados de nós, em que cada nó contém um valor e uma referência (ou ponteiro) para o próximo nó da sequência**.
+
+Diferentemente dos arrays, em que os elementos ficam em posições contíguas de memória, as listas ligadas usam ponteiros para conectar os nós, o que permite alocação dinâmica de memória e operações flexíveis de inserção e remoção.
+
+### Tipos de listas ligadas
+
+1. **Lista simplesmente ligada** - cada nó contém um elemento de dado e um ponteiro para o próximo nó da sequência. O último nó aponta para NULL, indicando o fim da lista
+
+2. **Lista duplamente ligada** - cada nó contém um elemento de dado, um ponteiro para o próximo nó e um ponteiro para o nó anterior. Isso permite percorrer a lista nos dois sentidos, para frente e para trás
+
+3. **Lista ligada circular** - parecida com a lista simplesmente ligada, mas o último nó aponta de volta para o primeiro, formando uma estrutura circular. Isso pode ser útil em certas aplicações, como representar um buffer circular
+
+![Tipos de listas ligadas](/linked__lists.svg)
+*Tipos de listas ligadas (Tsuji, Yutaro. 2019)*
+
+## Pilhas
+
+Uma pilha (stack) é uma **estrutura de dados linear, ou seja, os dados ficam organizados em sequência**, um depois do outro.
+
+Ela é muito **parecida com o array, mas é importante notar que** no array você pode remover e adicionar valores onde quiser, enquanto na pilha **você só pode remover e adicionar valores por um lado, o topo**.
+
+Para entender, pense numa pilha de moedas: para chegar a qualquer moeda no meio da pilha, você precisa começar pelo topo e tirar as moedas uma a uma até chegar à que quer.
+
+Por isso, **essa estrutura de dados funciona pelo princípio Last In, First Out (LIFO)**: o último a entrar é o primeiro a sair.
+
+É importante saber que as pilhas são a base das chamadas de função e das funções recursivas. Para saber mais, veja este [artigo no Medium](https://medium.com/swlh/stack-data-structure-practical-applications-operations-e4e308008752).
+
+![Estrutura de dados pilha](/stack__data-structure.svg)
+*Estrutura de dados pilha*
+
+## Árvores
+
+Uma estrutura de dados hierárquica formada por nós, em que **cada nó contém um valor** e referências (ou ponteiros) para os seus nós filhos.
+
+As árvores servem para representar relações hierárquicas entre elementos, como a estrutura de um sistema de arquivos, um organograma ou a estrutura de um documento HTML. Elas também são fundamentais para implementar várias estruturas de dados e algoritmos, como árvores binárias de busca e heaps.
+
+Este guia não pretende esgotar todos os detalhes de um tema tão complexo. Se quiser aprender mais sobre os tipos de árvore, leia este [artigo no freeCodeCamp](https://www.freecodecamp.org/news/all-you-need-to-know-about-tree-data-structures-bceacb85490c/).
+
+![Visão geral de árvores](/trees__data-structure.svg)
+*Visão geral de árvores (Vijini, Mallawaarachchi. 2020)*
+
+## Grafos
+
+Grafos são uma **estrutura de dados não linear formada por uma coleção de nós (vértices) e um conjunto de arestas que conectam pares de nós**. Cada aresta representa uma relação ou conexão entre dois vértices.
+
+Grafos servem para representar redes de entidades interligadas, como redes sociais (por exemplo, no Facebook cada pessoa é representada por um vértice, ou nó, e cada nó é uma estrutura com informações como nome, gênero ou localização), redes de computadores, redes de transporte (por exemplo, sistemas de GPS e o Google Maps usam grafos para encontrar o caminho mais curto entre um destino e outro) e muito mais.
+
+![Visão geral de grafos](/graphs__data-structure.svg)
+*Visão geral de grafos*
+
+Há muito a explorar sobre a implementação e o uso de grafos. Se quiser ir além, veja este [artigo no Medium](https://medium.com/sysco-labs/graphs-in-data-structures-and-algorithms-aaf110c2670c).
+
+## Tabelas hash
+
+Uma tabela hash é uma estrutura de dados que **permite guardar e recuperar valores com eficiência usando um mapeamento de pares chave-valor** (ela associa chaves a valores).
+
+Uma tabela hash **funciona usando uma função hash para transformar a chave (entrada) num índice ou endereço do array interno onde o valor correspondente está guardado** (Majeed, Ahsan. 2023).
+
+Ao inserir um par chave-valor na tabela, a função hash é usada para descobrir o índice em que o valor deve ser colocado. Da mesma forma, ao buscar um valor pela chave, a função hash é usada de novo para localizar o índice correspondente e recuperar o valor associado.
+
+![Função hash](/hash__data-structure.svg)
+*Função hash (TutorialsPoint - DSA Hash Table)*
+
+Como costumo reforçar, esse tema tem muito mais detalhes para explorar e entender. Se quiser se aprofundar, sugiro este [tutorial](https://www.tutorialspoint.com/data_structures_algorithms/hash_data_structure.htm) ou este [artigo no Medium](https://medium.com/@ahsan.majeed086/data-structure-and-algorithms-hash-table-1a8ef93f58a0).

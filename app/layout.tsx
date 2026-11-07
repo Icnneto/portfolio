@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Archivo, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { LOCALE_BOOT_SCRIPT } from "./lib/locale";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
                   document.documentElement.classList.add('dark');
                 }
               })()
+              ${LOCALE_BOOT_SCRIPT}
             `,
           }}
         />

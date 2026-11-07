@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { T } from './Localized';
 
 export function Stats() {
     const [views, setViews] = useState<number | null>(null);
@@ -65,7 +66,7 @@ export function Stats() {
     return (
         <div className="stats-container">
             <span className="stat-item">
-                {views !== null ? views.toLocaleString() : '...'} views
+                {views !== null ? views.toLocaleString() : '...'} <T en="views" pt="visualizações" />
             </span>
             <span className="stat-separator">·</span>
             <a

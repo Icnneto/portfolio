@@ -1,0 +1,102 @@
+---
+title: "Fundamentos de System Design: Sharding de Banco de Dados"
+date: "21 de março de 2026"
+readTime: "7-8 min de leitura"
+excerpt: "Uma abordagem simples sobre sharding de banco de dados em System Design"
+tags: ["basics", "system design", "sharding", "programming"]
+---
+
+Olá, e obrigado por estar aqui de novo!
+Estou começando uma série de posts sobre Fundamentos de System Design! A ideia é escrever sobre temas diferentes que, juntos, nos deem uma visão mais ampla de system design.
+
+Vale dizer que esta série é bastante inspirada nos [artigos de Core Concepts do Hello Interview](https://www.hellointerview.com/learn/system-design/core-concepts/sharding)! Dê uma olhada, vale muito a pena!
+
+Neste post (#2), o foco é **sharding**!
+
+## O que é sharding de banco de dados?
+
+Quando uma aplicação começa a crescer, a quantidade de dados que ela precisa guardar aumenta com o tempo. Quando o volume de dados fica grande demais e a aplicação precisa lidar com leituras e escritas demais, o banco de dados vira um **gargalo**, prejudicando a experiência do cliente e deixando toda a operação mais lenta.
+
+Sem problema! É só migrar para uma instância de banco maior, com mais capacidade de processamento e armazenamento... O problema é que isso só resolve por um tempo.
+
+Uma hora a aplicação bate no teto do que uma única máquina aguenta. Então, quando o **escalonamento vertical** e outras otimizações já não bastam, precisamos passar de **escalar para cima** para **escalar para os lados**, ou seja: dividir o banco de dados entre várias máquinas.
+
+Sharding de banco de dados é, em termos simples, o processo de **dividir os dados em pedaços menores, chamados shards, e guardá-los em vários servidores de banco de dados.**
+
+## Quais são os benefícios?
+
+**Melhor tempo de resposta:** ao dividir o banco monolítico em conjuntos menores de dados, cada shard tem menos linhas do que o banco inteiro e, por isso, **leva menos tempo para recuperar uma informação específica** ou rodar uma consulta. (num cenário em que as consultas possam ser direcionadas a um único shard)
+
+**Disponibilidade:** distribuir partes do banco entre várias máquinas **evita que um ponto único de falha** derrube o sistema inteiro. Ou seja, uma queda não leva a aplicação toda junto. Vale dizer que o sharding costuma vir acompanhado de **replicação de dados**; assim, quando um shard fica indisponível, aquele dado pode ser acessado e restaurado a partir de outro shard.
+
+**Escalabilidade:** o sharding permite que a aplicação **escale horizontalmente** à medida que o volume de dados cresce, sem exigir longos períodos fora do ar (é por isso que escolher a shard key certa é tão importante — já chegamos lá).
+
+## Como escolher uma shard key?
+
+Antes de tudo, a **shard key** é o campo ou a coluna que usamos para dividir o conjunto de dados e que, por consequência, define como os dados são agrupados.
+
+Dito isso, escolher uma shard key boa (ou ótima) é crucial para a aplicação. Uma escolha ruim leva a consequências como **distribuição desigual dos dados, hot spots e consultas distribuídas** (operações lentas) para juntar a informação necessária.
+
+Mas então, como escolher uma boa shard key?
+
+Uma chave ideal deve ter **alta cardinalidade**, **distribuição uniforme e estar alinhada aos padrões de acesso mais comuns da aplicação.** (alguns times usam **shard keys compostas**: quando uma coluna só não garante alta cardinalidade, os engenheiros combinam dois campos)
+
+Isso quer dizer que a chave escolhida deve ter (ou poder ter) **muitos valores únicos**. Imagine fazer sharding por um campo booleano: durante toda a vida da aplicação, teremos só dois shards. Já se escolhermos o ID do usuário, temos espaço de sobra para escalar e distribuir os dados.
+
+Além disso, o conteúdo (os valores) deve **se espalhar de forma uniforme entre os shards**, ou seja, uma distribuição consistente para evitar hot spots! Se você escolher fazer sharding pela data de nascimento do usuário, mas a sua aplicação é focada na geração X, pode acabar com problemas.
+
+## Métodos de sharding
+
+Agora que escolhemos a shard key, precisamos decidir como distribuir os dados entre os shards. Vamos dar uma olhada rápida em algumas estratégias de sharding.
+
+### Por faixa (range-based)
+
+O sharding por faixa é uma das estratégias mais simples. Ele **agrupa os valores com base num conjunto de faixas pré-configuradas**. Podemos escolher uma shard key como user_id e atribuir faixas de valores a cada shard.
+
+Seguindo o exemplo acima, poderíamos alocar os user_id de 1 a 1.000 no Servidor A, de 1.001 a 2.000 no Servidor B, e assim por diante.
+
+Apesar de bem direto e simples, isso pode gerar **hot spots**, dependendo da shard key escolhida. Por exemplo, se escolhermos created_at como shard key e alocarmos todos os usuários novos no Servidor B, esse servidor faz todo o trabalho enquanto o Servidor A fica ocioso.
+
+### Por geografia (geo-based)
+
+Nesta estratégia, o sharding leva em conta a **distribuição geográfica dos servidores com base na localização física dos usuários**. Em termos simples, os dados de usuários na Irlanda ficam em servidores na Europa, enquanto os usuários no Brasil têm seus servidores na América do Sul.
+
+Esse método é uma forma de **reduzir a latência da aplicação** para uma experiência melhor e ajuda as empresas a atender a **requisitos de compliance** de cada região. Um ótimo exemplo é uma tabela de usuários dividida por região (EU, US, LATAM).
+
+### Por hash (hash-based)
+
+O sharding por hash é um método baseado numa **função matemática (função hash)** para distribuir os registros de forma uniforme entre os shards. Como vimos antes, se escolhermos user_id como shard key, em vez de distribuir por faixas, pegamos o valor do ID, aplicamos o hash e usamos o resultado para escolher o shard.
+
+**Consistência e distribuição uniforme** — essa é uma das principais vantagens de usar uma função hash para mapear a distribuição. Por outro lado, a complexidade aumenta quando precisamos **adicionar ou remover shards** (servidores). Isso porque a função hash usa um módulo que considera o número de shards (servidores) disponíveis no momento para distribuir os registros e, sempre que esse número muda, precisamos **reparticionar os dados e mover uma quantidade enorme deles de lugar**.
+
+Para resolver isso, o **consistent hashing** coloca tanto os dados quanto os servidores num "anel" conceitual, de modo que só uma pequena fração dos dados precisa se mover quando um servidor entra ou sai. É um tema fascinante por si só, e vou dedicar um post futuro inteiro para explicar a fundo como ele funciona!
+
+### Por diretório (directory-based)
+
+Neste método, criamos uma **tabela de consulta** que decide onde cada registro mora. Desacoplamos a shard key do posicionamento físico, associando uma chave (shard key) a valores (shards).
+
+Vantagens: **flexibilidade** — se algum usuário gera um tráfego enorme, dá para movê-lo para um shard dedicado. Quando precisamos rebalancear, basta atualizar a tabela de consulta. Desvantagens: **toda requisição exige uma consulta à tabela**, o que adiciona latência às leituras e escritas. Além disso, se o diretório onde a tabela de mapeamento mora cair, **o sistema inteiro para**, mesmo que os shards de dados estejam saudáveis.
+
+## Quais são os desafios?
+
+Como vimos, o sharding é uma ferramenta poderosa para escalar o banco de dados, mas **não é uma bala de prata**. Distribuir dados entre vários servidores adiciona uma camada significativa de complexidade ao sistema. Vamos ver alguns dos principais desafios que podemos enfrentar.
+
+### Hot spots e desbalanceamento de carga
+
+Já tocamos nesse assunto ao falar de como escolher a shard key, mas ele continua sendo uma das dores de cabeça mais comuns. Um **hot spot** acontece quando um shard específico recebe uma **quantidade desproporcional de tráfego ou de dados** em comparação com os outros. Mesmo que os dados estejam bem distribuídos, certos registros ou usuários podem de repente gerar um tráfego enorme. Quando um servidor faz todo o trabalho pesado enquanto os outros ficam ociosos, ele vira um gargalo, e o propósito de escalar para os lados se perde.
+
+### Operações entre shards
+
+Num único banco de dados, rodar uma consulta que junta várias tabelas é prática comum. Mas, quando os dados estão particionados em várias máquinas, rodar essas mesmas consultas vira um desafio enorme. Se uma operação precisa **buscar ou juntar dados que estão em shards diferentes**, o sistema tem de consultar cada servidor separadamente, trazer os dados pela rede e juntá-los de novo. Essas **consultas distribuídas são notoriamente lentas e caras**, afetando diretamente os tempos de resposta que queríamos melhorar.
+
+### Manter a consistência
+
+Num ambiente monolítico, contamos com o banco de dados para lidar com as transações com segurança. Se uma operação falha no meio do caminho, o banco desfaz tudo, mantendo os dados consistentes. Num ambiente com sharding, uma única transação pode precisar **atualizar dados em dois ou mais servidores** ao mesmo tempo. Se a atualização der certo no Servidor A mas falhar no Servidor B, os dados ficam **inconsistentes**. Resolver isso exige implementar **transações distribuídas**, o que traz muita complexidade e custo extra para a arquitetura.
+
+### Referências
+
+[Hello Interview - Sharding](https://www.hellointerview.com/learn/system-design/core-concepts/sharding)
+
+[AWS - What is Database Sharding?](https://aws.amazon.com/what-is/database-sharding/)
+
+[Google Cloud - What is Database Sharding](https://cloud.google.com/discover/what-is-database-sharding)

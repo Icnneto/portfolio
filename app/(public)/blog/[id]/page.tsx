@@ -4,6 +4,8 @@ import path from 'path';
 import matter from 'gray-matter';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import BackButton from './BackButton';
+import { T, TBlock } from '../../../components/Localized';
+import { isTranslation } from '../../../utils/loadBlogPosts';
 
 interface BlogPostPageProps {
   params: Promise<{ id: string }>;
@@ -11,6 +13,10 @@ interface BlogPostPageProps {
 
 async function getBlogPost(id: string) {
   const blogDir = path.join(process.cwd(), 'app', '(public)', 'content', 'blog');
+  // A Portuguese edition is never a post of its own: /blog/<id>.pt is not found.
+  if (isTranslation(`${id}.mdx`)) {
+    return null;
+  }
   const filePath = path.join(blogDir, `${id}.mdx`);
 
   // Check if file exists
@@ -21,6 +27,10 @@ async function getBlogPost(id: string) {
   const fileContents = fs.readFileSync(filePath, 'utf8');
   const { data, content } = matter(fileContents);
 
+  // The Brazilian Portuguese edition, when there is one, lives next to the post as <id>.pt.mdx.
+  const ptPath = path.join(blogDir, `${id}.pt.mdx`);
+  const ptFile = fs.existsSync(ptPath) ? matter(fs.readFileSync(ptPath, 'utf8')) : null;
+
   return {
     frontmatter: {
       title: data.title || 'Untitled',
@@ -30,6 +40,14 @@ async function getBlogPost(id: string) {
       tags: data.tags || [],
     },
     content,
+    pt: ptFile
+      ? {
+          title: ptFile.data.title || data.title || 'Untitled',
+          date: ptFile.data.date || data.date || '',
+          readTime: ptFile.data.readTime || data.readTime || '',
+          content: ptFile.content,
+        }
+      : null,
   };
 }
 
@@ -43,7 +61,7 @@ export async function generateStaticParams() {
   const files = fs.readdirSync(blogDir);
 
   return files
-    .filter((filename) => filename.endsWith('.mdx'))
+    .filter((filename) => filename.endsWith('.mdx') && !isTranslation(filename))
     .map((filename) => ({
       id: filename.replace('.mdx', ''),
     }));
@@ -90,7 +108,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             fontWeight: '400',
             lineHeight: '1.2'
           }}>
-            {post.frontmatter.title}
+            <T en={post.frontmatter.title} pt={post.pt?.title ?? post.frontmatter.title} />
           </h1>
           <div style={{
             display: 'flex',
@@ -98,9 +116,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             color: 'var(--text-muted)',
             fontSize: '0.95rem'
           }}>
-            <span>{post.frontmatter.date}</span>
+            <span><T en={post.frontmatter.date} pt={post.pt?.date ?? post.frontmatter.date} /></span>
             <span>·</span>
-            <span>{post.frontmatter.readTime}</span>
+            <span><T en={post.frontmatter.readTime} pt={post.pt?.readTime ?? post.frontmatter.readTime} /></span>
           </div>
 
           {post.frontmatter.tags.length > 0 && (
@@ -130,7 +148,19 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         {/* Blog post content */}
         <div className="blog-content">
-          <MDXRemote source={post.content} />
+          <TBlock
+            en={<MDXRemote source={post.content} />}
+            pt={
+              post.pt ? (
+                <MDXRemote source={post.pt.content} />
+              ) : (
+                <>
+                  <p><em>Este post está disponível apenas em inglês.</em></p>
+                  <MDXRemote source={post.content} />
+                </>
+              )
+            }
+          />
         </div>
       </article>
     </div>
